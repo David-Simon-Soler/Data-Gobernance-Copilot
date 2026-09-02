@@ -1,42 +1,41 @@
 # Data Governance Copilot
 
-**Status: Phase 0 — Product & Architecture**
+**Status: Phase 1.1 — Ingestion hardened**
 
-Futura aplicación local para perfilar CSV/XLSX y presentar calidad, riesgos potenciales de gobernanza, evidencia y acciones priorizadas. No es un comprobador de cumplimiento legal ni sustituye a un Data Steward o revisión jurídica.
+Data Governance Copilot es una aplicación local para perfilar CSV/XLSX y presentar calidad, riesgos potenciales de gobernanza, evidencia y acciones priorizadas. No es un comprobador de cumplimiento legal ni sustituye a un Data Steward o revisión jurídica.
 
-## Enfoque
+## Principios
 
-El núcleo será profiling determinista, reglas explícitas, evidencia trazable y scoring reproducible. La IA, si se añade, solo redactará o sugerirá sobre resultados calculados. Toda salida queda etiquetada `DETECTED`, `INFERRED` o `SUGGESTED`; la ausencia de un finding no certifica ausencia de problema.
+El núcleo es **evidence-first**: profiling determinista, reglas explícitas, evidencia trazable y scoring reproducible. Toda salida conserva su nivel: `DETECTED` para hechos calculados, `INFERRED` para inferencias con señales/confidence y `SUGGESTED` para acciones o propuestas. La IA futura es opcional y solo advisory; no altera hechos ni métricas.
+
+## Estado implementado
+
+Phase 1.1 implementa exclusivamente ingestión segura y normalización de CSV/XLSX: validación de formatos y límites, CSV UTF-8 con delimitadores controlados, XLSX read-only sin evaluación de fórmulas, `IngestedDataset` interno con Polars y `GET /health`. No implementa profiling, quality score, governance, recomendaciones ni IA.
 
 ```text
-Browser → Next.js → FastAPI → Profiling → Quality → Governance → Recommendations
-                                                               ↘ Optional AI
+Browser (future) → FastAPI → Ingestion → IngestedDataset → future profiling
 ```
 
-Procesamiento stateless, local y temporal: no persiste datasets por defecto.
+El procesamiento es stateless, local y no persiste datasets por defecto.
 
-## Stack previsto
+## V0.1 previsto y non-goals
 
-- Frontend: Next.js, TypeScript, Tailwind CSS.
-- Backend: Python, FastAPI, Pydantic, Polars.
-- XLSX: openpyxl solo si es necesario.
-- Tests futuros: pytest, Vitest, Playwright.
+El producto futuro cubrirá CSV/XLSX, schema, nulos, cardinalidad, estadísticas, duplicados, tipos, cuatro dimensiones de calidad, clasificación semántica prudente, evidence, recommendations y data dictionary draft.
 
-Es un stack coherente para un motor Python de profiling y una UI moderna. Phase 0 no instala ni implementa nada.
+Fuera de V0.1: cuentas, DB, persistencia, conectores, lineage, data contracts, historical drift, RBAC, legal compliance scoring o certificación GDPR, PDF/OCR, embeddings/vector DB, agentes, chat, BI y ETL.
 
-## V0.1 previsto
+Claims permitidos: “automated data profiling”, “data quality heuristic”, “potential personal data” y “suggested data dictionary”. No se afirma GDPR compliance, auditoría oficial ni garantía de calidad.
 
-CSV/XLSX; esquema, nulos, cardinalidad, estadísticas, duplicados, tipos y señales básicas; cuatro dimensiones de calidad; clasificación semántica y posibles datos personales; overview, findings, evidencia, recomendaciones y borrador de diccionario.
+## Stack y documentación
 
-Fuera: cuentas, DB, conectores, lineage, data contracts, certificación GDPR, PDF/OCR, embeddings, agentes, chat, BI y ETL.
-
-## Documentación
+Python, FastAPI, Pydantic, Polars, openpyxl y pytest; frontend futuro con Next.js, TypeScript y Tailwind CSS.
 
 - [Producto](docs/PRODUCT.md)
 - [Arquitectura](docs/ARCHITECTURE.md)
 - [Dominio](docs/DOMAIN.md)
 - [Modelo de calidad](docs/QUALITY_MODEL.md)
 - [Gobernanza](docs/GOVERNANCE.md)
+- [Ingestión](docs/INGESTION.md)
 - [Privacidad y seguridad](docs/PRIVACY.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Decisiones](docs/DECISIONS.md)

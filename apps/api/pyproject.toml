@@ -1,0 +1,22 @@
+[project]
+name = "data-governance-copilot-api"
+version = "0.1.0"
+description = "Local ingestion backend for Data Governance Copilot"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "openpyxl>=3.1,<4",
+  "polars>=1.23,<2",
+  "pydantic>=2.10,<3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"

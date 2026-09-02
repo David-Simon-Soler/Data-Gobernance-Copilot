@@ -1,45 +1,46 @@
 # Arquitectura
 
-## Forma del sistema
+## Forma del sistema y estado actual
 
-Monolito modular y stateless. Next.js presenta; FastAPI coordina un análisis efímero; el motor Python procesa en memoria o temporal controlado. Sin DB ni microservicios en V0.1.
+Monolito modular y stateless. Phase 1.1 implementa ingestión segura; Next.js, profiling y análisis siguen siendo futuros. FastAPI expone únicamente `GET /health`. No hay endpoint de análisis, DB, persistencia ni microservicios.
 
 ```mermaid
 flowchart LR
-  B[Browser] --> W[Next.js UI]
-  W --> A[FastAPI analysis boundary]
-  A --> V[File validation]
-  V --> P[Profiling engine]
-  P --> Q[Quality engine]
-  P --> G[Governance engine]
-  Q --> R[Recommendation engine]
+  B[Browser future] --> A[FastAPI]
+  A --> I[Ingestion]
+  I --> P[Profiling]
+  P --> Q[Quality]
+  P --> G[Governance]
+  Q --> R[Recommendations]
   G --> R
   P --> D[DatasetProfile]
   Q --> D
   G --> D
   R --> D
-  D -. advisory context only .-> L[LLM provider]
+  D -. advisory context only .-> L[Optional AI]
 ```
 
-## Módulos y límites
+## Módulos y boundaries
 
-- **Ingestion**: CSV/XLSX, límites y validación; no ejecuta macros ni fórmulas.
-- **Profiling**: única fuente de counts, quality metrics y Evidence canónica.
-- **Quality**: aplica `QUALITY_MODEL.md` sobre perfiles.
-- **Governance**: crea classifications canónicas solo a partir de señales deterministas.
-- **Recommendations**: solo crea sugerencias vinculadas a findings existentes.
-- **Presentation/API**: serializa; no recalcula resultados.
+- **Ingestion** valida bytes CSV/XLSX y produce `IngestedDataset`; no infiere significado ni crea findings.
+- **Profiling** será la única fuente de counts, métricas y Evidence canónica.
+- **Quality** aplicará `QUALITY_MODEL.md` sobre perfiles deterministas.
+- **Governance** creará classifications canónicas solo con señales deterministas.
+- **Recommendations** producirá `SUGGESTED` vinculadas a findings existentes.
+- **Presentation/API** serializa contratos sin recalcular resultados.
 
-Archivo → temporal → validación → representación tabular → perfiles → calidad/gobernanza → findings/recomendaciones → respuesta → limpieza, incluso ante error. Un análisis no tiene usuario, sesión durable, historial ni archivo guardado.
+El lifecycle es `bytes no confiables → validación/límites → IngestedDataset → futuro DatasetProfile → respuesta → cleanup`. La implementación Phase 1 procesa en memoria y no crea temporales; una futura ruta temporal deberá limpiarse ante éxito, fallo, cancelación o expiración.
 
-## Frontera de IA
+## Ingestion implementada
 
-**LLM output is advisory only.** `LLMProvider` recibe `AnalysisContext` minimizado: nombres, tipos, métricas agregadas, findings y muestras ya autorizadas. Puede proponer significado semántico, descripciones, explicaciones y wording de recomendaciones. Tales salidas son `SUGGESTED`.
+`ingestion.service` enruta por extensión sin crear paths. CSV se lee UTF-8 con delimitadores permitidos y límites durante parsing. XLSX se trata como ZIP no confiable, se abre `read_only=True`, `data_only=False`, `keep_links=False`, no ejecuta fórmulas/macros y no usa valores calculados de fórmulas. Límites centralizados cubren bytes, filas, columnas, sheets, celdas, entradas ZIP y tamaño descomprimido.
 
-El LLM **MUST NOT** crear o mutar Evidence canónica, findings `DETECTED`, quality metrics, quality scores ni governance classifications canónicas. Una sugerencia semántica LLM no puede entrar en `ColumnProfile.classifications` ni contribuir a confidence canónica V0.1. No hay aceptación humana en V0.1. Proveedores futuros: `none`, `local`, Groq, OpenAI y Anthropic; `none` es el modo base.
+## Frontera IA
 
-## Dependencias y seguridad
+**LLM output is advisory only.** Puede proponer significado semántico, descripciones, explicaciones y wording de recomendaciones, siempre como `SUGGESTED`.
 
-Polars para agregación; FastAPI/Pydantic para frontera HTTP y contratos; openpyxl solo para inspección segura XLSX si hace falta. Next.js/TypeScript/Tailwind en cliente. Ninguna se instala en esta fase.
+El LLM no crea ni muta Evidence canónica, findings `DETECTED`, quality metrics, quality scores ni governance classifications canónicas. Una sugerencia LLM no entra en `ColumnProfile.classifications` ni contribuye a confidence canónica en V0.1; no existe aceptación humana en V0.1.
 
-Límites de bytes/filas/columnas/tiempo, whitelist y verificación de contenido; rechazo `.xlsm`; XLSX como ZIP no confiable; texto saneado antes de UI, logs o prompts. Ver [privacidad](PRIVACY.md).
+## Seguridad y dependencias
+
+Polars realiza la representación tabular; FastAPI/Pydantic delimitan la futura API; openpyxl lee XLSX. No se registra contenido de celdas. Valores y encabezados se tratan como datos no confiables y nunca como HTML crudo, paths o instrucciones. Ver [ingestión](INGESTION.md) y [privacidad](PRIVACY.md).
