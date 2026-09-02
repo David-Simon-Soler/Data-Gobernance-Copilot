@@ -1,0 +1,66 @@
+# Modelo de calidad V0.1
+
+**Quality Model Version: 0.1**. El score mide *structural readiness* de un único dataset; no mide obligatoriedad de negocio, corrección de negocio ni cumplimiento. Se redondea solo al final y expone numeradores, denominadores, pesos y aplicabilidad.
+
+## Datos base y aplicabilidad
+
+Sea `R` filas, `C` columnas y `N=R×C`. Un nulo es celda vacía, `null` o marcador configurado; `"0"` y `"false"` no son nulos. `R=0` produce `overall_score=null`, todas las dimensiones `INSUFFICIENT_DATA` y razón `empty_dataset`.
+
+`APPLICABLE` tiene denominador y regla válidos; `NOT_APPLICABLE` no tiene sujeto estructural (p. ej., sin candidate identifiers); `INSUFFICIENT_DATA` podría aplicar pero faltan observaciones. Las dimensiones no aplicables no reciben score ni peso. Las columnas constantes, categorías legítimas y texto no se penalizan por uniqueness.
+
+## Primitive type inference determinista
+
+Se opera sobre valores no nulos tras trim de espacios externos. Si no nulos es 0, tipo `STRING`. Un tipo se acepta solo si al menos **98%** de valores no nulos pasan su parser; los restantes quedan como valores inválidos para validity. Si ningún parser alcanza 98%, el tipo es `STRING`; no se fuerza un tipo mixto. No se infieren tipos semánticos aquí.
+
+Antes de tipos numéricos: si al menos 95% de tokens son dígitos de anchura mayor que uno y comienzan con `0`, se conserva `STRING` para proteger códigos como `00123`.
+
+Precedencia: `BOOLEAN → INTEGER → DECIMAL → DATETIME → DATE → STRING`. Datetime precede date para no perder hora.
+
+- `BOOLEAN`: `true/false`, `yes/no` en cualquier casing; `0/1` solos no bastan, debe existir al menos un literal alfabético booleano.
+- `INTEGER`: regex ASCII `^[+-]?(0|[1-9][0-9]*)$`; sin separadores de miles.
+- `DECIMAL`: regex ASCII `^[+-]?(0|[1-9][0-9]*)\.[0-9]+$`; solo punto decimal, sin separadores de miles ni coma decimal.
+- `DATE`: ISO exacto `YYYY-MM-DD`, calendario válido.
+- `DATETIME`: ISO exacto `YYYY-MM-DDTHH:MM:SS`, fracción opcional y sufijo opcional `Z` o `±HH:MM`; calendario/hora válidos.
+
+`01/02/2025`, fechas con slash, coma decimal, separadores de miles y formatos locales permanecen `STRING`. Si ≥98% coinciden con un formato de fecha ambiguo común, se puede emitir finding `ambiguous_date_format` `DETECTED`, pero no se interpreta con locale supuesto. Locale V0.1 es invariable: ISO/ASCII únicamente.
+
+## Dimensiones y fórmulas
+
+### Observed completeness y structural completeness — peso 35
+
+Siempre se muestra `observed_completeness = 100×(1−null_cells/N)` si `N>0`; es un hecho, no afirma defecto. El componente de score usa únicamente candidate identifiers estructurales `I`:
+
+`C_s = 100×(1−Σ null_count_i / (R×|I|))`.
+
+Con `I=∅`, structural completeness es `NOT_APPLICABLE`, razón `no_structural_candidate_identifier`. Nulos de otras columnas se reportan como missingness observada, normalmente `INFO`, no penalizan score ni generan finding severo automáticamente. Nulos en candidate identifiers son señal estructural. Así el score no presupone columnas de negocio obligatorias.
+
+### Candidate identifiers y uniqueness — peso 25
+
+Una columna es `STRUCTURAL_CANDIDATE_IDENTIFIER`, nunca primary key confirmada, si `R≥10` y cumple:
+
+1. nombre compatible de lista versionada (`id`, `identifier`, `uuid`, `guid` como token completo, o sufijo `_id`) **y** `non_null_rate≥0.95` y `unique_rate≥0.98`; o
+2. sin señal de nombre, `R≥100`, `non_null_rate≥0.99` y `unique_rate≥0.999`.
+
+`code` por sí solo nunca es señal compatible. Para un grupo repetido de tamaño `k`, `duplicate_excess_rows = k−1`; se conservan por posición las primeras filas del grupo y las posteriores son exceso. Para candidato `i`, `d_i=duplicate_excess_rows_i/non_null_i`.
+
+`duplicate_row_excess` sigue la misma regla sobre filas completas. Para impedir doble penalización, se forma el conjunto `E_id` de posiciones de exceso de todos los candidatos; `duplicate_row_excess_uncovered` cuenta solo posiciones de exceso de fila completa fuera de `E_id`; `D_u=duplicate_row_excess_uncovered/R`.
+
+Con `I` no vacío: `U=100×(1−min(1,0.8×average(d_i)+0.2×D_u))`. Sin `I` y `R≥2`: `U=100×(1−duplicate_row_excess/R)`. Con `R<2`: `INSUFFICIENT_DATA`, razón `fewer_than_two_rows`. Los dos tipos de duplicado pueden producir findings independientes; el solapamiento no se penaliza dos veces en score.
+
+### Validity — peso 25
+
+Para cada columna de primitive type `BOOLEAN`, `INTEGER`, `DECIMAL`, `DATE` o `DATETIME`, `invalid_i` es el número de valores no nulos que no pasa el parser exacto del tipo. `STRING` no aplica. `V=100×(1−Σinvalid_i/Σnon_null_i)` sobre elegibles. Si no hay columnas elegibles, `NOT_APPLICABLE`, razón `no_typed_columns`. Los inválidos generan `malformed_value`/`type_issue`.
+
+### Consistency — peso 15
+
+Solo usa familias deterministas conocidas, sin NLP ni reglas de negocio. Una columna es elegible con al menos 10 valores no nulos y al menos 98% de valores válidos en una de estas familias: BOOLEAN (familias exactas lower/upper/title de `true/false` o `yes/no`), INTEGER/DECIMAL (signo ausente, `+` o `-`; decimal siempre `.`), DATE ISO, DATETIME ISO (sin timezone, `Z`, u offset `±HH:MM`).
+
+Cada valor válido se asigna a su familia léxica exacta. El formato dominante es la familia más frecuente; en empate se toma el identificador de familia lexicográficamente menor. `inconsistent_i` cuenta valores válidos fuera de la familia dominante; los inválidos se cuentan solo en validity. `S=100×(1−Σinconsistent_i/Σvalid_non_null_i)`. Sin elegibles: `INSUFFICIENT_DATA` si hay familias potenciales con <10 valores; en otro caso `NOT_APPLICABLE` con razón `no_recognized_format_family`.
+
+## Agregación e interpretación
+
+Pesos base: structural completeness 35, uniqueness 25, validity 25, consistency 15. Para dimensiones `APPLICABLE` `A`:
+
+`Overall=round(Σ(score_j×weight_j)/Σ(weight_j), j∈A)`.
+
+`90–100`: pocas anomalías estructurales medibles; `75–89`: revisar warnings; `50–74`: problemas materiales; `<50`: revisar antes de uso analítico. Son bandas de comunicación, no garantía. Si `A` es vacío, `overall_score=null`. El resultado siempre declara `model_version: "0.1"`.
