@@ -10,7 +10,10 @@ def evaluate_quality(profile: DatasetProfile) -> QualityScore:
     if profile.row_count == 0:
         dimensions = tuple(_dimension(name, None, Applicability.INSUFFICIENT_DATA, "empty_dataset") for name, _ in _WEIGHTS)
         return _score(dimensions, None, (), ())
-    validity, findings, evidence = _validity(profile)
+    validity, validity_findings, validity_evidence = _validity(profile)
+    bridge_findings, bridge_evidence = _identifier_findings(profile)
+    findings = bridge_findings + validity_findings
+    evidence = bridge_evidence + validity_evidence
     dimensions = (_structural_completeness(profile), _uniqueness(profile), validity, _consistency(profile))
     return _score(dimensions, _observed_completeness(profile), findings, evidence)
 
@@ -86,3 +89,25 @@ def _dimension(name: str, score: float | None, applicability: Applicability, rea
 
 def _percent(value: float) -> float:
     return round(max(0.0, min(1.0, value)) * 100, 2)
+
+
+def _identifier_findings(profile: DatasetProfile) -> tuple[tuple[Finding, ...], tuple[Evidence, ...]]:
+    findings: list[Finding] = []
+    evidence: list[Evidence] = []
+    for column in profile.columns:
+        if not column.is_candidate_identifier:
+            continue
+        base = (('column_id', column.column_id), ('column_position', column.position), ('row_count', column.row_count), ('non_null_count', column.non_null_count), ('structural_candidate_identifier', True), ('model_version', '0.1'))
+        if column.duplicate_excess_rows > 0:
+            rule = 'QUALITY-IDENTIFIER-DUPLICATE-001'
+            evidence_id = f'E-QUALITY-COL-{column.position}-DUPLICATE-IDENTIFIER'
+            item = Evidence(evidence_id, 'metric', column.column_id, rule, '0.1', 'duplicate_excess_rows', column.duplicate_excess_rows, denominator=column.non_null_count, affected_rows=column.duplicate_excess_rows, details=base + (('duplicate_excess_rows', column.duplicate_excess_rows),))
+            finding = Finding(f'F-QUALITY-COL-{column.position}-DUPLICATE-IDENTIFIER', AssertionLevel.DETECTED, Severity.WARNING, Confidence.HIGH, 'duplicate_structural_identifier', column.column_id, 'Duplicate excess rows detected in structural candidate identifier', f'{column.duplicate_excess_rows} duplicate excess rows were detected in structural candidate identifier column {column.name}.', rule, (item.id,))
+            findings.append(finding); evidence.append(item)
+        if column.null_count > 0:
+            rule = 'QUALITY-IDENTIFIER-MISSING-001'
+            evidence_id = f'E-QUALITY-COL-{column.position}-MISSING-IDENTIFIER'
+            item = Evidence(evidence_id, 'metric', column.column_id, rule, '0.1', 'null_count', column.null_count, denominator=column.row_count, affected_rows=column.null_count, details=base + (('null_count', column.null_count),))
+            finding = Finding(f'F-QUALITY-COL-{column.position}-MISSING-IDENTIFIER', AssertionLevel.DETECTED, Severity.WARNING, Confidence.HIGH, 'structural_identifier_missingness', column.column_id, 'Missing values detected in structural candidate identifier', f'{column.null_count} missing values were detected in structural candidate identifier column {column.name}.', rule, (item.id,))
+            findings.append(finding); evidence.append(item)
+    return tuple(findings), tuple(evidence)

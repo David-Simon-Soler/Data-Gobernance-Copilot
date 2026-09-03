@@ -21,3 +21,30 @@ Cuando una columna tipada tiene valores no nulos que fallan su parser V0.1, Qual
 ## Límites del resultado
 
 Validity y consistency usan únicamente parsers y familias léxicas canónicas V0.1; no usan reglas de negocio, semántica ni NLP. El score no es certificación, compliance score, garantía de calidad, corrección de negocio ni evaluación legal. No genera recomendaciones, governance classifications ni resultados de IA.
+
+## Quality Finding Bridge — contrato V0.1
+
+Para permitir recomendaciones sin derivar hechos desde score internals, Quality expone findings canónicos adicionales sobre condiciones ya calculadas. Esta sección define el bridge de contrato; su implementación runtime queda para la fase correspondiente.
+
+### Duplicate structural identifier
+
+- Rule ID: `QUALITY-IDENTIFIER-DUPLICATE-001`, version `0.1` (activo en el contrato Quality Model 0.1).
+- Condition: `is_candidate_identifier` y `duplicate_excess_rows > 0`.
+- Finding ID: `F-QUALITY-COL-{position}-DUPLICATE-IDENTIFIER`.
+- Category: `duplicate_structural_identifier`; assertion `DETECTED`; severity `WARNING`; confidence `HIGH`.
+- Evidence ID: `E-QUALITY-COL-{position}-DUPLICATE-IDENTIFIER`.
+- Evidence: `column_id`, `column_position`, `row_count`, `non_null_count` (denominator), `duplicate_excess_rows`, flag `structural_candidate_identifier`, rule ID y versión. No duplicate values, muestras ni filas.
+- Mensaje: “Duplicate excess rows were detected in structural candidate identifier column {column_name}.” Nunca afirma primary key ni constraint violation.
+- Orden: posición de columna ascendente; dentro de una columna, el finding precede a otros findings Quality de esa columna.
+
+Este finding es el único source contract que habilita `REC-QUALITY-DUPLICATE-ID-001` (P0 / `DATA_QUALITY`).
+
+### Structural missingness
+
+`null_count > 0` en un structural candidate identifier ya participa en structural completeness. `QUALITY-IDENTIFIER-MISSING-001` queda activo como finding `DETECTED` `structural_identifier_missingness`, severity `WARNING`, con `null_count`, `non_null_count`, `row_count` y el flag de candidato. No activa ninguna Recommendation V0.1; su recomendación queda diferida.
+
+### Otras condiciones
+
+- `duplicate_row_excess` completo: ya se calcula y se evita doble penalización en score; finding separado y cualquier recommendation quedan diferidos hasta cerrar su contrato downstream.
+- `malformed_value`: permanece activo y es el único finding de validity actual.
+- Consistency calcula métricas, pero no emite finding canónico; cualquier recommendation queda diferida.

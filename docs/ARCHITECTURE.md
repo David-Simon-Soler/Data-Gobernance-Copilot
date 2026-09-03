@@ -10,8 +10,8 @@ flowchart LR
   A --> I[Ingestion implemented]
   I --> P[Profiling implemented]
   P --> Q[Quality implemented]
-  P --> G[Governance future]
-  Q --> R[Recommendations future]
+  P --> G[Governance implemented]
+  Q --> R[Recommendations implemented]
   G --> R
   P --> D[DatasetProfile]
   Q --> D
@@ -25,9 +25,10 @@ flowchart LR
 - **Ingestion** valida bytes CSV/XLSX y produce `IngestedDataset`; no crea findings semánticos.
 - **Profiling** recibe `IngestedDataset`, no reparsea ni muta el DataFrame. Recoge métricas estructurales y soporte efímero de posiciones/signals deterministas, sin valores de celdas ni scores.
 - **Quality** recibe solo `DatasetProfile`, no modifica el perfil ni reejecuta parsing/profiling. Posee applicability, fórmulas, penalties, scores y findings de parser conforme a `QUALITY_MODEL.md`.
-- **Governance** creará classifications canónicas solo con señales deterministas; todavía no existe.
-- **Recommendations** producirá `SUGGESTED` vinculadas a findings existentes; todavía no existe.
+- **Governance** crea classifications canónicas solo con señales deterministas.
+- **Recommendations** produce `SUGGESTED` vinculadas a findings existentes mediante el paquete determinista de Phase 5.1; la exposición API sigue siendo futura.
 - **Presentation/API** serializa contratos sin recalcular resultados.
+- **Recommendations** consumirá `QualityScore` y `GovernanceAssessment` y producirá un `RecommendationSet` determinista; contrato definido en `RECOMMENDATIONS.md`.
 ### Integración Governance Engine
 
 `DatasetProfile → Governance Engine → GovernanceAssessment`.
