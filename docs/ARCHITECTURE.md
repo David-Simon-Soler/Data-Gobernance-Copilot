@@ -2,14 +2,14 @@
 
 ## Forma del sistema y estado actual
 
-Monolito modular y stateless. Phase 2 implementa Ingestion y Profiling; Next.js y la API de análisis siguen siendo futuros. FastAPI expone únicamente `GET /health`. No hay DB, persistencia ni microservicios.
+Monolito modular y stateless. Phase 3 implementa Ingestion, Profiling y Quality Engine; Next.js y la API de análisis siguen siendo futuros. FastAPI expone únicamente `GET /health`. No hay DB, persistencia ni microservicios.
 
 ```mermaid
 flowchart LR
   B[Browser future] --> A[FastAPI]
   A --> I[Ingestion implemented]
   I --> P[Profiling implemented]
-  P --> Q[Quality future]
+  P --> Q[Quality implemented]
   P --> G[Governance future]
   Q --> R[Recommendations future]
   G --> R
@@ -23,13 +23,13 @@ flowchart LR
 ## Módulos y boundaries
 
 - **Ingestion** valida bytes CSV/XLSX y produce `IngestedDataset`; no crea findings semánticos.
-- **Profiling** recibe `IngestedDataset`, no reparsea ni muta el DataFrame, y crea métricas/Finding/Evidence estructurales `DETECTED`.
-- **Quality** aplicará `QUALITY_MODEL.md`; no existe score en Phase 2.
-- **Governance** creará classifications canónicas solo con señales deterministas; no existe en Phase 2.
-- **Recommendations** producirá `SUGGESTED` vinculadas a findings existentes.
+- **Profiling** recibe `IngestedDataset`, no reparsea ni muta el DataFrame. Recoge métricas estructurales y soporte efímero de posiciones/signals deterministas, sin valores de celdas ni scores.
+- **Quality** recibe solo `DatasetProfile`, no modifica el perfil ni reejecuta parsing/profiling. Posee applicability, fórmulas, penalties, scores y findings de parser conforme a `QUALITY_MODEL.md`.
+- **Governance** creará classifications canónicas solo con señales deterministas; todavía no existe.
+- **Recommendations** producirá `SUGGESTED` vinculadas a findings existentes; todavía no existe.
 - **Presentation/API** serializa contratos sin recalcular resultados.
 
-El lifecycle es `bytes no confiables → validación/límites → IngestedDataset → DatasetProfile → futura respuesta → cleanup`. Todo procesamiento actual es en memoria y sin persistencia.
+El lifecycle es `bytes no confiables → validación/límites → IngestedDataset → DatasetProfile → QualityScore → futura respuesta → cleanup`. Todo procesamiento actual es en memoria y sin persistencia.
 
 ## Frontera IA
 

@@ -32,6 +32,12 @@ class Severity(StrEnum):
     CRITICAL = "CRITICAL"
 
 
+class Applicability(StrEnum):
+    APPLICABLE = "APPLICABLE"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    INSUFFICIENT_DATA = "INSUFFICIENT_DATA"
+
+
 @dataclass(frozen=True, slots=True)
 class BasicStatistics:
     minimum: int | float | date | datetime | None = None
@@ -42,6 +48,16 @@ class BasicStatistics:
     min_length: int | None = None
     max_length: int | None = None
     average_length: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class QualityColumnSignals:
+    primitive_type: PrimitiveType
+    non_null_count: int
+    invalid_count: int
+    valid_non_null_count: int
+    format_family_counts: tuple[tuple[str, int], ...]
+    has_recognized_format_family: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +125,8 @@ class ColumnProfile:
     basic_statistics: BasicStatistics | None
     classifications: tuple[str, ...]
     findings: tuple[str, ...]
+    quality_signals: QualityColumnSignals | None = None
+    duplicate_excess_positions: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,3 +149,4 @@ class DatasetProfile:
     evidence: tuple[Evidence, ...]
     profiling_metadata: ProfilingMetadata
     model_version: str = "0.1"
+    complete_duplicate_excess_positions: tuple[int, ...] = ()

@@ -1,6 +1,6 @@
 # Data Governance Copilot
 
-**Status: Phase 2 — Dataset Profiling implemented**
+**Status: Phase 3 — Quality Engine implemented**
 
 Data Governance Copilot es una aplicación local para perfilar CSV/XLSX y presentar calidad, riesgos potenciales de gobernanza, evidencia y acciones priorizadas. No es un comprobador de cumplimiento legal ni sustituye a un Data Steward o revisión jurídica.
 
@@ -10,11 +10,11 @@ El núcleo es **evidence-first**: profiling determinista, reglas explícitas, ev
 
 ## Estado implementado
 
-CSV/XLSX seguro y stateless, normalización `IngestedDataset`, `GET /health` y profiling determinista de estructura: nulls, distinct/uniqueness, duplicados, primitive types, estadísticas, columnas constant/all-null y structural candidate identifiers. No hay quality score, governance, personal-data detection, recomendaciones ni IA.
+CSV/XLSX seguro y stateless, normalización `IngestedDataset`, `GET /health`, profiling determinista y Quality Engine V0.1. El motor calcula completeness estructural, uniqueness, validity y consistency solo cuando aplican, y expone observed completeness sin penalizar automáticamente columnas normales con nulls. No hay governance, personal-data detection, recomendaciones ni IA.
 
 ## V0.1 y non-goals
 
-El producto futuro cubrirá cuatro dimensiones de calidad, clasificación semántica prudente, evidence, recommendations y data dictionary draft. Fuera: cuentas, DB, persistencia, conectores, lineage, data contracts, historical drift, RBAC, legal compliance scoring/certificación GDPR, PDF/OCR, embeddings/vector DB, agentes, chat, BI y ETL.
+El score es una evaluación estructural determinista; no certifica calidad, compliance, corrección de negocio ni requisitos legales. Fuera: cuentas, DB, persistencia, conectores, lineage, data contracts, historical drift, RBAC, legal compliance scoring/certificación GDPR, PDF/OCR, embeddings/vector DB, agentes, chat, BI y ETL.
 
 Claims permitidos: “automated data profiling”, “data quality heuristic”, “potential personal data” y “suggested data dictionary”. No se afirma GDPR compliance, auditoría oficial ni garantía de calidad.
 
@@ -26,6 +26,7 @@ Claims permitidos: “automated data profiling”, “data quality heuristic”,
 - [Ingestión](docs/INGESTION.md)
 - [Profiling](docs/PROFILING.md)
 - [Modelo de calidad](docs/QUALITY_MODEL.md)
+- [Quality Engine](docs/QUALITY_ENGINE.md)
 - [Gobernanza](docs/GOVERNANCE.md)
 - [Privacidad](docs/PRIVACY.md)
 - [Roadmap](docs/ROADMAP.md)
