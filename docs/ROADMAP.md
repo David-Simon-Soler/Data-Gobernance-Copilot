@@ -2,7 +2,7 @@
 
 1. **Phase 0 — Product & Architecture**: completada.
 2. **Phase 1 — Ingestion**: completada. Validación CSV/XLSX, límites, lifecycle sin temporales, contratos de error y tests.
-3. **Phase 2 — Profiling**: perfiles, tipos, nulos, cardinalidad, stats, duplicados, identificadores, outliers y malformados.
+3. **Phase 2 — Profiling**: completada. Perfil estructural, tipos conservadores, nulls, cardinalidad, estadísticas, duplicados, candidate identifiers y evidence determinista.
 4. **Phase 3 — Quality Engine**: scoring especificado, evidencia, tests deterministas.
 5. **Phase 4 — Governance Engine**: clasificación, posibles datos personales, señales y confianza.
 6. **Phase 5 — Recommendation Engine**: acciones trazables y prioridades.
