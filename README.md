@@ -27,7 +27,8 @@ Claims permitidos: “automated data profiling”, “data quality heuristic”,
 - [Profiling](docs/PROFILING.md)
 - [Modelo de calidad](docs/QUALITY_MODEL.md)
 - [Quality Engine](docs/QUALITY_ENGINE.md)
-- [Gobernanza](docs/GOVERNANCE.md)
+- [Gobernanza](docs/GOVERNANCE.md) — modelo y reglas canónicas
+- [Governance Engine](docs/GOVERNANCE_ENGINE.md) — implementación determinista
 - [Privacidad](docs/PRIVACY.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Decisiones](docs/DECISIONS.md)

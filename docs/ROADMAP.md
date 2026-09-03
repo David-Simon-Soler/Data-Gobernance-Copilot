@@ -4,7 +4,7 @@
 2. **Phase 1 — Ingestion**: completada. Validación CSV/XLSX, límites, lifecycle sin temporales, contratos de error y tests.
 3. **Phase 2 — Profiling**: completada. Perfil estructural, tipos conservadores, nulls, cardinalidad, estadísticas, duplicados, candidate identifiers y evidence determinista.
 4. **Phase 3 — Quality Engine**: completada. QualityScore V0.1 determinista, aplicabilidad, pesos, completeness observada/estructural, uniqueness sin doble penalización, validity y consistency canónicas.
-5. **Phase 4 — Governance Engine**: clasificación, posibles datos personales, señales y confianza.
+5. **Phase 4 — Governance Engine**: implementación en progreso, pendiente de validación final. Incluye taxonomía canónica, reglas deterministas versionadas, clasificación semántica con evidence, agregación de confidence, potential personal data, potential quasi-identifier y controles de falsos positivos; sin IA ni scoring de compliance/legal.
 6. **Phase 5 — Recommendation Engine**: acciones trazables y prioridades.
 7. **Phase 6 — Optional AI**: `LLMProvider`, modo none, minimización y evaluación.
 8. **Phase 7 — API**: contratos de análisis, errores y límites.

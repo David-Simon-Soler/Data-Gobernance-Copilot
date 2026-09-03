@@ -28,6 +28,11 @@ flowchart LR
 - **Governance** creará classifications canónicas solo con señales deterministas; todavía no existe.
 - **Recommendations** producirá `SUGGESTED` vinculadas a findings existentes; todavía no existe.
 - **Presentation/API** serializa contratos sin recalcular resultados.
+### Integración Governance Engine
+
+`DatasetProfile → Governance Engine → GovernanceAssessment`.
+
+El Governance Engine consume `DatasetProfile`, no reabre archivos fuente, no accede a valores de celdas y no muta el perfil. Es determinista, separado del Quality Engine y no usa IA; no produce recomendaciones ni conclusiones de compliance o legales.
 
 El lifecycle es `bytes no confiables → validación/límites → IngestedDataset → DatasetProfile → QualityScore → futura respuesta → cleanup`. Todo procesamiento actual es en memoria y sin persistencia.
 
