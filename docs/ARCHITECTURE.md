@@ -2,11 +2,13 @@
 
 ## Forma del sistema y estado actual
 
-Monolito modular y stateless. Phase 3 implementa Ingestion, Profiling y Quality Engine; Next.js y la API de análisis siguen siendo futuros. FastAPI expone únicamente `GET /health`. No hay DB, persistencia ni microservicios.
+Monolito modular y stateless. Phase 7.1 implementa la API de análisis determinista; Next.js y capacidades no incluidas siguen siendo futuros. FastAPI expone `GET /health` y `POST /api/v1/analyze`. No hay DB, persistencia ni microservicios.
 
 ```mermaid
 flowchart LR
   B[Browser future] --> A[FastAPI]
+  B --> H[FastAPI /api/v1/analyze]
+  H --> O[Analysis orchestration]
   A --> I[Ingestion implemented]
   I --> P[Profiling implemented]
   P --> Q[Quality implemented]

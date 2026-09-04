@@ -1,6 +1,6 @@
 # Data Governance Copilot
 
-**Status: Phase 5.1 — Recommendation Engine implemented; pending final validation**
+**Status: Phase 7.1 — Analysis API implemented and validated**
 
 Data Governance Copilot es una aplicación local para perfilar CSV/XLSX y presentar calidad, riesgos potenciales de gobernanza, evidencia y acciones priorizadas. No es un comprobador de cumplimiento legal ni sustituye a un Data Steward o revisión jurídica.
 
@@ -30,6 +30,7 @@ Claims permitidos: “automated data profiling”, “data quality heuristic”,
 - [Gobernanza](docs/GOVERNANCE.md) — modelo y reglas canónicas
 - [Governance Engine](docs/GOVERNANCE_ENGINE.md) — implementación determinista
 - [Recommendations](docs/RECOMMENDATIONS.md) — Recommendation Model 0.1
+- [Analysis API](docs/API.md) — contrato HTTP V0.1
 - [Privacidad](docs/PRIVACY.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Decisiones](docs/DECISIONS.md)
