@@ -1,2 +1,54 @@
-"use client"; import { useMemo } from "react"; import { label } from "../../lib/format"; import type { AnalysisResponse } from "../../types/api"; import { Badge } from "./Badge"; import { ColumnInventory } from "./ColumnInventory"; import { EvidenceBox } from "./EvidenceBox"; import { FindingsSection } from "./FindingCard"; import { ResultNavigation } from "./ResultNavigation";
-export function ResultsView({response,onReset}:{response:AnalysisResponse;onReset:()=>void}){const {metadata,analysis}=response;const {profiling:p,quality:q,governance:g,recommendations:r}=analysis;const byId=useMemo(()=>new Map([...p.findings,...q.findings,...g.findings].map(f=>[f.id,f])),[p.findings,q.findings,g.findings]);const evidence=[...p.evidence,...q.evidence,...g.evidence];return <main><header className="app-header"><span>Data Governance Copilot</span><button onClick={onReset} className="button secondary">Analyze another dataset</button></header><ResultNavigation/><div className="results"><section id="overview" className="hero"><p className="eyebrow">Analysis complete</p><h1>{metadata.source_filename}</h1><div className="summary-grid"><div><span className="muted">Format</span><strong>{metadata.source_format.toUpperCase()}</strong></div><div><span className="muted">Rows</span><strong>{metadata.row_count.toLocaleString()}</strong></div><div><span className="muted">Columns</span><strong>{metadata.column_count}</strong></div>{metadata.sheet_name&&<div><span className="muted">Sheet</span><strong>{metadata.sheet_name}</strong></div>}</div>{metadata.warnings?.length>0&&<div className="warning" role="status">{metadata.warnings.map(w=><p key={w}>{w}</p>)}</div>}</section><section id="quality"><h2>Quality</h2><div className="score">{q.overall_score==null?<><strong>N/A</strong><span> Not applicable</span></>:<><strong>{q.overall_score}</strong><span>/ 100</span></>}</div><div className="dimensions">{(q.dimensions||[]).map(d=><div className="dimension" key={d.name}><div><strong>{label(d.name)}</strong><Badge>{label(d.applicability)}</Badge></div>{d.score!=null&&<><div className="bar"><i style={{width:`${Math.max(0,Math.min(100,d.score))}%`}}/></div><span className="muted">{d.score.toFixed(1)} / 100</span></>}{d.reason&&<p className="muted">{d.reason}</p>}</div>)}</div><FindingsSection title="Quality findings" findings={[...p.findings,...q.findings]} evidence={[...p.evidence,...q.evidence]}/></section><section id="governance"><h2>Governance</h2><p className="muted">Deterministic classifications for human review.</p>{g.summary&&<div className="summary-grid"><div><span className="muted">Classified fields</span><strong>{g.summary.classified_column_count}</strong></div>{g.summary.category_counts?.map(([c,n])=><div key={c}><span className="muted">{label(c)}</span><strong>{n}</strong></div>)}</div>}{g.classifications?.length?<div className="classifications">{g.classifications.map(c=><article className="classification" key={c.id}><strong>{p.columns.find(x=>x.column_id===c.column_id)?.name||c.column_id}</strong><Badge>{label(c.category)}</Badge><Badge>{label(c.assertion_level)}</Badge><span className="muted">{label(c.confidence)} confidence · {c.method}</span></article>)}</div>:<p className="empty">No governance classifications were produced by the current V0.1 rules.</p>}<FindingsSection title="Governance findings" findings={g.findings||[]} evidence={g.evidence||[]}/></section><section id="recommendations"><h2>Recommendations</h2>{r.recommendations?.length?r.recommendations.map(x=>{const f=byId.get(x.finding_id);return <article className="recommendation" key={x.id}><Badge tone={x.priority.toLowerCase()}>{x.priority}</Badge><Badge>{label(x.category)}</Badge><h3>{x.action}</h3><p>{x.rationale}</p>{f?<details className="evidence"><summary>Why this recommendation?</summary><div className="detail"><strong>{f.title}</strong><p>{f.description}</p><EvidenceBox ids={f.evidence_ids} evidence={evidence}/></div></details>:<p className="muted">Source finding details unavailable.</p>}</article>}) : <p className="empty">No recommendations were produced by the current V0.1 rules.</p>}</section><section id="columns"><h2>Column inventory</h2><ColumnInventory columns={p.columns||[]}/></section></div></main>}
+"use client";
+
+import type { AnalysisResponse } from "../../types/api";
+import { ColumnInventory } from "./ColumnInventory";
+import { GovernanceSection } from "./GovernanceSection";
+import { OverviewSection } from "./OverviewSection";
+import { QualitySection } from "./QualitySection";
+import { RecommendationsSection } from "./RecommendationsSection";
+import { ResultNavigation } from "./ResultNavigation";
+
+export function ResultsView({
+  response,
+  isSyntheticDemo,
+  onReset,
+}: {
+  response: AnalysisResponse;
+  isSyntheticDemo: boolean;
+  onReset: () => void;
+}) {
+  const { analysis } = response;
+
+  return (
+    <>
+      <a className="skip-link" href="#analysis-results">
+        Skip to analysis results
+      </a>
+      <header className="app-header">
+        <span>Data Governance Copilot</span>
+        <div className="result-reset">
+          {isSyntheticDemo ? <span>Ready to analyze your own file?</span> : null}
+          <button onClick={onReset} className="button secondary">
+            Analyze another dataset
+          </button>
+        </div>
+      </header>
+      <ResultNavigation />
+      <main id="analysis-results" className="results" tabIndex={-1}>
+        <OverviewSection response={response} isSyntheticDemo={isSyntheticDemo} />
+
+        <QualitySection analysis={analysis} />
+        <GovernanceSection analysis={analysis} />
+        <RecommendationsSection analysis={analysis} />
+
+        <section id="columns" aria-labelledby="columns-title">
+          <h2 id="columns-title">Column inventory</h2>
+          <ColumnInventory
+            columns={analysis.profiling.columns}
+            governanceClassifications={analysis.governance.classifications}
+          />
+        </section>
+      </main>
+    </>
+  );
+}

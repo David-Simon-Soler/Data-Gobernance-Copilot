@@ -76,7 +76,7 @@ Concise copy may say: files are processed for this request; V0.1 does not persis
 
 The API base URL is environment-configurable (for example `NEXT_PUBLIC_API_BASE_URL`); production URLs are never hardcoded. The frontend consumes the complete response envelope and does not mutate it. Allowed derivations are formatting canonical rates, grouping/sorting existing objects and counting recommendations/classifications. It may not invent scores, thresholds, confidence percentages, severities, priorities or legal conclusions.
 
-No export/download control is included until a real export contract exists. A demo dataset affordance is deferred to Phase 9 fixtures. Phase 6 AI remains deferred: no chat, Ask AI, generated descriptions, sparkles, provider settings or AI explanations. Commercial SaaS UI is also out of scope.
+No export/download control is included until a real export contract exists. The bundled synthetic demo is the implemented Phase 9 fixture described below and uses the same analysis path as uploads. Phase 6 AI remains deferred: no chat, Ask AI, generated descriptions, sparkles, provider settings or AI explanations. Commercial SaaS UI is also out of scope.
 
 ## Implemented in Phase 8
 
@@ -84,13 +84,47 @@ The minimal Next.js/TypeScript application implements one `/` route, the `IDLE â
 
 Behavioral tests cover upload preflight, state transitions, network/API errors, result rendering, finding semantics, evidence, recommendation traceability and column filters. Phase 8 validation includes Vitest, standalone ESLint, TypeScript typecheck, production build and dependency audits.
 
-## Deferred to Phase 9+
+## Phase 9.1 visual foundation
 
-Visual polish, a demo dataset experience, richer summary/executive presentation, export, Playwright coverage and further accessibility/responsive QA remain deferred. AI, persistence, accounts, authentication, history and SaaS workspace features remain outside Phase 8 and are not implied by the implemented frontend.
+Phase 9.1 implements the approved editorial visual foundation, a clearer landing/upload hierarchy and a result Overview that keeps dataset identity, exact structural quality, review counts and ingestion warnings in the first viewport. The upload copy now states the actual ephemeral-processing boundaries, the Overview keeps engine/schema metadata in a secondary disclosure, and success moves keyboard focus to the result heading. No backend behavior, route, dependency, score interpretation or product boundary changed.
+
+## Phase 9.2 analytical results
+
+Phase 9.2 implements the human-first Quality, Governance, finding, evidence and recommendation presentation. Quality keeps observed dataset completeness separate from structural completeness, preserves applicability states, maps known reason codes to cautious readable copy and retains the raw codes, inputs, weights and model metadata in technical disclosures. Structural profiling signals and Quality Engine findings remain distinct sources.
+
+Governance classifications are grouped by canonical `column_id` for presentation while every classification, signal, evidence link and governance finding remains available. The section shows count-based summaries and explicitly states that deterministic signals are for human review, not legal or compliance determinations. Findings prioritize title, description, affected field and full-text severity; stable finding anchors support exact recommendation traceability.
+
+Recommendations with exactly matching priority, category, action, rationale and source are grouped visually. This does not mutate or deduplicate canonical recommendation objects: the canonical total, every recommendation ID and every source-finding/evidence relationship remain inspectable. Known ratio/rate/proportion evidence metrics are formatted as percentages; other numeric evidence remains numeric.
+
+Phase 9.2b reduces repeated primary presentation without removing canonical detail: Governance findings remain available in one native disclosure with the exact count and stable anchors, while Quality model explanations remain in technical details.
+
+## Phase 9.3 inventory, navigation and accessibility
+
+The Column inventory now derives its classifications by joining `analysis.governance.classifications` to profile columns by canonical `column_id`; it does not mutate the response or require classifications on `ColumnProfile`. The compact table preserves source order, supports combined case-insensitive name and canonical-classification filters, and keeps safe aggregate profile and quality-signal detail in native per-column disclosures. Raw values, samples and duplicate row positions are never rendered.
+
+Result navigation is sticky, horizontally scrollable on small screens and identifies exactly one visible section with `aria-current="location"`. Section and finding anchors account for the sticky offset. Responsive layouts keep intentional horizontal scrolling inside the result navigation and column table, with controls and metadata adapting at narrower widths.
+
+The result state adds a keyboard-visible skip link, a labeled focusable table scroll region, caption and header scopes, logical landmarks/headings and request-error focus management. Successful analysis still focuses the result heading; ordinary client-side file validation does not unnecessarily move focus.
+
+## Phase 9.4 synthetic demo
+
+The upload state includes a secondary **Try the sample dataset** action for the bundled synthetic Customer Operations Sample. The frontend fetches the static asset, creates a browser `File` and passes it to the existing `analyzeDataset` client; the request follows the same FastAPI ingestion, profiling, Quality, Governance and Recommendations pipeline as a user upload. No demo response, score or classification is hardcoded.
+
+Successful demo results carry the factual **Synthetic sample dataset** label and retain the normal **Analyze another dataset** reset, with a prompt to upload the visitor's own file. User uploads never receive the synthetic label. Asset and API failures use the same safe alert and focus treatment as upload failures, and the demo action remains available for retry. Dataset design, safety and actual observed output are documented in [SYNTHETIC_DEMO.md](SYNTHETIC_DEMO.md).
+
+## Phase 9.5 final visual QA and polish
+
+Phase 9.5 validates the real FastAPI and Next.js journey at desktop, tablet and mobile widths, including upload, loading, success, safe error recovery, reset, synthetic demo, sticky navigation, disclosures, recommendation anchors, keyboard focus and the controlled horizontal column table. Canonical column IDs continue to drive finding anchors and joins, while primary finding and recommendation copy now resolves them to readable column names. Named generic groups expose valid ARIA semantics, and obsolete badge code from the pre-Phase 9 presentation has been removed.
+
+Automated browser accessibility checks report no confirmed violations; remaining colour-contrast items require manual review because their text sits on inherited transparent surfaces, and the reviewed palette retains readable dark text on light surfaces. This is a practical accessibility validation, not a certification.
+
+## Deferred beyond Phase 9
+
+Export and dedicated end-to-end browser test coverage remain deferred to Phase 10 or a later explicit contract. AI, persistence, accounts, authentication, history and SaaS workspace features remain outside V0.1 and are not implied by the implemented frontend.
 
 ## Contract status
 
-Frontend UX contract APPROVED for V0.1. Phase 8 implementation and validation are complete; only the final Phase 8 commit is pending. The decisions above are closed: one `/` route, source-oriented findings, compact in-page navigation, inline evidence disclosures, no XLSX sheet selector, no export UI and a Phase 9 demo affordance.
+Frontend UX contract APPROVED for V0.1. Phase 8 implementation, validation and commit are complete. Phase 9.1, Phase 9.2, Phase 9.2b, Phase 9.3, Phase 9.4 and Phase 9.5 are implemented and validated; Phase 9 is complete and Phase 10 is next. The decisions above are closed: one `/` route, source-oriented findings, compact in-page navigation, inline evidence disclosures, no XLSX sheet selector and no export UI.
 
 ## API/privacy conflict audit
 

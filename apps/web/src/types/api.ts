@@ -13,7 +13,7 @@ export interface Evidence {
   rule_id: string;
   rule_version: string;
   metric: string;
-  observed_value: number | string;
+  observed_value: number | string | boolean;
   denominator?: number | null;
   affected_rows?: number | null;
   sample_policy?: string;
@@ -53,9 +53,30 @@ export interface ColumnProfile {
   is_all_null: boolean;
   is_candidate_identifier: boolean;
   candidate_identifier_reason?: string | null;
+  candidate_identifier?: CandidateIdentifier | null;
   classifications: string[];
   findings: string[];
   basic_statistics?: Record<string, number | string | null> | null;
+  quality_signals?: QualityColumnSignals | null;
+}
+
+export interface CandidateIdentifier {
+  kind: string;
+  reason: string;
+  name_signal: boolean;
+  completeness: number;
+  uniqueness: number;
+  thresholds: Array<[string, number]>;
+  confirmed_key: boolean;
+}
+
+export interface QualityColumnSignals {
+  primitive_type: string;
+  non_null_count: number;
+  invalid_count: number;
+  valid_non_null_count: number;
+  format_family_counts: Array<[string, number]>;
+  has_recognized_format_family: boolean;
 }
 
 export interface QualityDimension {
@@ -63,6 +84,8 @@ export interface QualityDimension {
   score: number | null;
   applicability: Applicability;
   reason?: string | null;
+  numerator?: number | null;
+  denominator?: number | null;
 }
 
 export interface GovernanceClassification {
@@ -71,15 +94,28 @@ export interface GovernanceClassification {
   category: string;
   assertion_level: AssertionLevel;
   confidence: Confidence;
+  deterministic: boolean;
   method: string;
-  signals: unknown[];
+  rule_version: string;
+  signals: GovernanceSignal[];
   evidence_ids: string[];
+}
+
+export interface GovernanceSignal {
+  id: string;
+  source: string;
+  signal_type: string;
+  strength: number;
+  deterministic: boolean;
+  rule_id: string;
+  rule_version: string;
+  evidence_id: string;
 }
 
 export interface Recommendation {
   id: string;
   finding_id: string;
-  source: string;
+  source: "QUALITY" | "GOVERNANCE";
   priority: "P0" | "P1" | "P2";
   category: string;
   action: string;
@@ -87,6 +123,12 @@ export interface Recommendation {
   assertion_level: AssertionLevel;
   rule_id: string;
   model_version: string;
+}
+
+export interface RecommendationSummary {
+  total_count: number;
+  counts_by_priority: Array<[Recommendation["priority"], number]>;
+  counts_by_category: Array<[string, number]>;
 }
 
 export interface AnalysisResponse {
@@ -103,16 +145,27 @@ export interface AnalysisResponse {
 
   analysis: {
     profiling: Record<string, unknown> & {
+      row_count: number;
+      column_count: number;
       columns: ColumnProfile[];
       findings: Finding[];
       evidence: Evidence[];
+      profiling_metadata: {
+        source_filename: string;
+        source_format: string;
+        profiling_method: string;
+      };
+      model_version: string;
     };
 
     quality: Record<string, unknown> & {
       overall_score: number | null;
+      observed_completeness: number | null;
       dimensions: QualityDimension[];
+      applied_weights: Array<[string, number]>;
       findings: Finding[];
       evidence: Evidence[];
+      model_version: string;
     };
 
     governance: Record<string, unknown> & {
@@ -124,10 +177,13 @@ export interface AnalysisResponse {
         columns_with_potential_personal_data: string[];
         category_counts: Array<[string, number]>;
       };
+      model_version: string;
     };
 
     recommendations: Record<string, unknown> & {
       recommendations: Recommendation[];
+      summary: RecommendationSummary;
+      model_version: string;
     };
   };
 }

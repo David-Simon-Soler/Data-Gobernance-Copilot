@@ -1,4 +1,124 @@
 "use client";
-import { useState } from "react"; import { analyzeDataset } from "../lib/api"; import { validateFile } from "../lib/validation"; import type { AnalysisResponse } from "../types/api"; import { UploadPanel } from "../components/upload/UploadPanel"; import { ResultsView } from "../components/results/ResultsView";
-type State="IDLE"|"FILE_SELECTED"|"SUBMITTING"|"SUCCESS"|"ERROR";
-export default function Home(){const [state,setState]=useState<State>("IDLE");const [file,setFile]=useState<File|null>(null);const [response,setResponse]=useState<AnalysisResponse|null>(null);const [error,setError]=useState<string|null>(null);const select=(next:File|null)=>{const message=validateFile(next);setFile(message?null:next);setResponse(null);setError(message);setState(message?"ERROR":next?"FILE_SELECTED":"IDLE")};const submit=async(e:React.FormEvent)=>{e.preventDefault();if(!file||state==="SUBMITTING")return;setState("SUBMITTING");setError(null);try{setResponse(await analyzeDataset(file));setState("SUCCESS")}catch(err){setError((err as {code?:string}).code||"internal_error");setState("ERROR")}};const reset=()=>{setFile(null);setResponse(null);setError(null);setState("IDLE")};if(state==="SUCCESS"&&response)return <ResultsView response={response} onReset={reset}/>;return <main className="shell"><section className="hero entry"><p className="eyebrow">Evidence-first dataset assessment</p><h1>Understand the quality and governance signals in your dataset.</h1><p className="lede">Deterministic profiling, traceable findings and actionable recommendations for CSV and XLSX files.</p><UploadPanel file={file} error={error} submitting={state==="SUBMITTING"} onSelect={select} onSubmit={submit}/></section></main>}
+
+import { useState } from "react";
+import { ResultsView } from "../components/results/ResultsView";
+import { UploadPanel } from "../components/upload/UploadPanel";
+import { analyzeDataset } from "../lib/api";
+import { loadDemoFile } from "../lib/demo";
+import { validateFile } from "../lib/validation";
+import type { AnalysisResponse } from "../types/api";
+
+type State = "IDLE" | "FILE_SELECTED" | "SUBMITTING" | "SUCCESS" | "ERROR";
+
+export default function Home() {
+  const [state, setState] = useState<State>("IDLE");
+  const [file, setFile] = useState<File | null>(null);
+  const [response, setResponse] = useState<AnalysisResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isSyntheticDemo, setIsSyntheticDemo] = useState(false);
+  const [focusError, setFocusError] = useState(false);
+
+  const select = (next: File | null) => {
+    const message = validateFile(next);
+    setFile(message ? null : next);
+    setResponse(null);
+    setError(message);
+    setIsSyntheticDemo(false);
+    setFocusError(false);
+    setState(message ? "ERROR" : next ? "FILE_SELECTED" : "IDLE");
+  };
+
+  const runAnalysis = async (nextFile: File, syntheticDemo: boolean) => {
+    setFile(nextFile);
+    setIsSyntheticDemo(syntheticDemo);
+    setState("SUBMITTING");
+    setError(null);
+    setFocusError(false);
+    try {
+      setResponse(await analyzeDataset(nextFile));
+      setState("SUCCESS");
+    } catch (requestError) {
+      setError((requestError as { code?: string }).code || "internal_error");
+      setFocusError(true);
+      setState("ERROR");
+    }
+  };
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!file || state === "SUBMITTING") return;
+    void runAnalysis(file, isSyntheticDemo);
+  };
+
+  const tryDemo = async () => {
+    if (state === "SUBMITTING") return;
+    setFile(null);
+    setResponse(null);
+    setError(null);
+    setIsSyntheticDemo(false);
+    setFocusError(false);
+    setState("SUBMITTING");
+    try {
+      await runAnalysis(await loadDemoFile(), true);
+    } catch {
+      setError("demo_asset_unavailable");
+      setFocusError(true);
+      setState("ERROR");
+    }
+  };
+
+  const reset = () => {
+    setFile(null);
+    setResponse(null);
+    setError(null);
+    setIsSyntheticDemo(false);
+    setFocusError(false);
+    setState("IDLE");
+  };
+
+  if (state === "SUCCESS" && response) {
+    return (
+      <ResultsView
+        response={response}
+        isSyntheticDemo={isSyntheticDemo}
+        onReset={reset}
+      />
+    );
+  }
+
+  return (
+    <main className="shell entry-shell">
+      <header className="entry-brand" role="group" aria-label="Product identity">
+        <strong>Data Governance Copilot</strong>
+        <span>V0.1</span>
+      </header>
+      <section className="entry-grid" aria-labelledby="entry-title">
+        <div className="entry-copy">
+          <p className="eyebrow">Evidence-first dataset assessment</p>
+          <h1 id="entry-title">
+            Understand the quality and governance signals in your dataset.
+          </h1>
+          <p className="lede">
+            Upload a dataset for deterministic profiling, structural data-quality
+            assessment, governance classification signals and traceable
+            recommendations.
+          </p>
+          <ul className="capability-list" aria-label="Analysis capabilities">
+            <li>Deterministic, versioned rules</li>
+            <li>Evidence linked to every finding</li>
+            <li>Recommendations that trace to their source</li>
+          </ul>
+        </div>
+        <UploadPanel
+          file={file}
+          error={error}
+          focusError={focusError}
+          submitting={state === "SUBMITTING"}
+          onSelect={select}
+          onSubmit={submit}
+          onTryDemo={() => void tryDemo()}
+        />
+      </section>
+    </main>
+  );
+}
