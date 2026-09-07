@@ -35,6 +35,18 @@ npm audit --omit=dev
 
 `pip install -e ".[dev]"` instala exclusivamente los rangos declarados en `apps/api/pyproject.toml`. `npm ci` exige y respeta `apps/web/package-lock.json` sin actualizarlo.
 
+## Smoke E2E de release
+
+El smoke Chromium gestiona automáticamente un FastAPI real y un Next.js de producción en los puertos canónicos. Requiere que `apps/api/.venv` exista y tenga instalados los extras de desarrollo descritos arriba.
+
+```sh
+cd apps/web
+npx playwright install chromium
+npm run test:e2e
+```
+
+Para usar otro entorno backend ya preparado, define `DGC_E2E_PYTHON` con la ruta absoluta a su ejecutable Python. La suite usa un solo worker, no reutiliza servidores existentes y los detiene al terminar. Valida landing, demo sintética contra la API real, secciones de resultados, trazabilidad Governance, filtro de columnas, reset, archivo inválido, fallo real de red y carga CSV nativa. Los puertos 3000 y 8000 deben estar libres.
+
 ## Ejecución canónica
 
 Terminal 1:

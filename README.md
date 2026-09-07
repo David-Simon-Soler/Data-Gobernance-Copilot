@@ -74,6 +74,13 @@ Para comprobar el build de producción en lugar del servidor de desarrollo:
 npm run start
 ```
 
+El smoke E2E de release usa Chromium, levanta FastAPI y el build de producción automáticamente y requiere el entorno `apps/api/.venv` ya instalado:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+```
+
 Abre `http://localhost:3000`. `NEXT_PUBLIC_API_BASE_URL` es una variable pública de build y debe estar definida al ejecutar `npm run build` (o `npm run dev`); no contiene secretos. El frontend no incorpora proxy API: el navegador comunica directamente con FastAPI mediante la URL configurada.
 
 `localhost` y `127.0.0.1` son orígenes distintos para el navegador. La receta canónica sirve el frontend en `http://localhost:3000`, permite ese origen mediante `DATA_GOV_CORS_ORIGINS` y dirige sus peticiones a `http://127.0.0.1:8000`. Consulta [RELEASE.md](docs/RELEASE.md) para la prueba de producción, la demo y el diagnóstico de CORS.

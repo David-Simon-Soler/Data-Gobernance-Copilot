@@ -11,6 +11,9 @@ venv/
 apps/web/node_modules/
 apps/web/.next/
 apps/web/coverage/
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/blob-report/
 apps/web/.env.local
 *.tsbuildinfo
 
