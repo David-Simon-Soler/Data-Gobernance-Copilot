@@ -1,0 +1,1 @@
+const links=[["overview","Overview"],["quality","Quality"],["governance","Governance"],["recommendations","Recommendations"],["columns","Columns"]] as const; export function ResultNavigation(){return <nav className="result-nav" aria-label="Result sections">{links.map(([id,title])=><a key={id} href={`#${id}`}>{title}</a>)}</nav>}

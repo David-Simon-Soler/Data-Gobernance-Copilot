@@ -6,3 +6,13 @@ venv/
 .env
 .env.*
 !.env.example
+
+# Frontend generated files
+apps/web/node_modules/
+apps/web/.next/
+apps/web/coverage/
+apps/web/.env.local
+*.tsbuildinfo
+
+# Python build metadata
+*.egg-info/

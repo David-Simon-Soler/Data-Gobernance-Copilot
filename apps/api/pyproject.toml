@@ -9,10 +9,11 @@ dependencies = [
   "polars>=1.23,<2",
   "pydantic>=2.10,<3",
   "python-multipart>=0.0.9,<1",
+  "uvicorn>=0.30,<1",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<9"]
+dev = ["pytest>=8,<9", "httpx2>=2.12,<3"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

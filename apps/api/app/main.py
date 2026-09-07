@@ -51,7 +51,7 @@ async def http_error(_: Request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"error":{"code":code,"message":message}})
 @app.exception_handler(IngestionError)
 async def ingestion_error(_: Request, exc: IngestionError):
-    mapping={UnsupportedFormatError:415, FileTooLargeError:413, DatasetLimitError:413, MalformedDatasetError:400, EmptyDatasetError:400, SheetNotFoundError:400}
+    mapping={UnsupportedFormatError:415, FileTooLargeError:413, DatasetLimitError:400, MalformedDatasetError:400, EmptyDatasetError:400, SheetNotFoundError:400}
     status=next((code for typ,code in mapping.items() if isinstance(exc,typ)),400)
     return JSONResponse(status_code=status, content={"error":{"code":getattr(exc,"code","ingestion_error"),"message":"The uploaded dataset could not be processed."}})
 @app.exception_handler(Exception)

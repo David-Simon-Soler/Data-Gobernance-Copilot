@@ -1,0 +1,1 @@
+export const label=(v:string)=>v.replaceAll("_"," ").toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()); export const size=(n:number)=>n<1024*1024?`${Math.max(1,Math.round(n/1024))} KB`:`${(n/1024/1024).toFixed(1).replace(/\.0$/,'')} MB`; export const pct=(n:number|null|undefined)=>n==null?"—":`${(n*100).toFixed(1).replace(/\.0$/,'')}%`;

@@ -1,6 +1,7 @@
 import json
 from fastapi.testclient import TestClient
 from app.main import app
+from app.ingestion.errors import DatasetLimitError
 
 client=TestClient(app)
 
@@ -25,8 +26,17 @@ def test_filename_and_format_errors():
     r=client.post('/api/v1/analyze',files={'file':('',b'a,b\n1,2\n','text/csv')}); assert r.status_code in (400,422)
 
 def test_request_and_file_limits():
-    r=client.post('/api/v1/analyze',content=b'x'*(6*1024*1024+1),headers={'content-type':'application/octet-stream'}); assert r.status_code==413
+    r=client.post('/api/v1/analyze',content=b'x'*(6*1024*1024+1),headers={'content-type':'application/octet-stream'}); assert r.status_code==413 and r.json()['error']['code']=='request_too_large'
     r=client.post('/api/v1/analyze',files={'file':('x.csv',b'x'*(5*1024*1024+1),'text/csv')}); assert r.status_code==413
+
+def test_dataset_limit_error_is_safe_400(monkeypatch):
+    def exceed_dataset_limit(*args, **kwargs):
+        raise DatasetLimitError('SECRET_DATASET_VALUE')
+    monkeypatch.setattr('app.main.analyze_dataset', exceed_dataset_limit)
+    r=client.post('/api/v1/analyze',files={'file':('x.csv',b'a\n1\n','text/csv')})
+    assert r.status_code==400
+    assert r.json()=={'error':{'code':'dataset_limit_exceeded','message':'The uploaded dataset could not be processed.'}}
+    assert 'SECRET_DATASET_VALUE' not in r.text
 
 def test_xlsx_sheet_selection_and_unknown(xlsx_bytes):
     payload=xlsx_bytes({'First':[['a'],[1]],'Second':[['b'],[2]]})
