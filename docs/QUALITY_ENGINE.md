@@ -24,7 +24,7 @@ Validity y consistency usan únicamente parsers y familias léxicas canónicas V
 
 ## Quality Finding Bridge — contrato V0.1
 
-Para permitir recomendaciones sin derivar hechos desde score internals, Quality expone findings canónicos adicionales sobre condiciones ya calculadas. Esta sección define el bridge de contrato; su implementación runtime queda para la fase correspondiente.
+Para permitir recomendaciones sin derivar hechos desde score internals, Quality expone findings canónicos adicionales sobre condiciones ya calculadas. El bridge está implementado y forma parte del output runtime V0.1.
 
 ### Duplicate structural identifier
 

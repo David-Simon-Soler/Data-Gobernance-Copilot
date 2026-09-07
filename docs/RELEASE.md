@@ -76,7 +76,7 @@ La respuesta de salud debe ser exactamente `{"status":"ok"}`. No se requieren se
 
 ## Demo sintética
 
-En la landing, selecciona **Try synthetic demo** y analiza el archivo preseleccionado. La respuesta canónica usa `customer-operations-sample.xlsx`, sheet `Customer Operations`, 50 filas y 13 columnas. Debe producir overall quality `99`, observed completeness `98.46`, dimensiones `100.0 / 98.4 / 99.67 / 96.66`, 2 quality findings, 19 governance classifications, 19 governance findings y 8 recommendations. Más contexto en [SYNTHETIC_DEMO.md](SYNTHETIC_DEMO.md).
+En la landing, selecciona **Try the sample dataset**. La respuesta canónica usa `customer-operations-sample.xlsx`, sheet `Customer Operations`, 50 filas y 13 columnas. Debe producir overall quality `99`, observed completeness `98.46`, dimensiones `100.0 / 98.4 / 99.67 / 96.66`, 2 quality findings, 19 governance classifications, 19 governance findings y 8 recommendations. Más contexto en [SYNTHETIC_DEMO.md](SYNTHETIC_DEMO.md).
 
 ## CORS y troubleshooting
 

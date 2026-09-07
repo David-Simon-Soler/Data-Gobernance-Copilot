@@ -2,17 +2,17 @@
 
 ## Objetivo y límites
 
-Phase 2 transforma un `IngestedDataset` ya validado en `DatasetProfile` determinista. Describe estructura y propiedades observables; no vuelve a parsear archivos ni modifica el DataFrame original. No calcula quality scores, no aplica reglas de negocio, no clasifica gobernanza, no detecta datos personales, no recomienda y no usa IA.
+El profiler transforma un `IngestedDataset` ya validado en un `DatasetProfile` determinista. Describe estructura y propiedades observables; no vuelve a parsear archivos ni modifica el DataFrame original. No calcula Quality scores, no clasifica gobernanza, no recomienda y no usa IA.
 
 ## Modelo
 
-`DatasetProfile` contiene row/column count, perfiles de columna, métricas de filas duplicadas completas, candidate identifiers, findings/evidence estructurales, metadata de fuente y `model_version: "0.1"`. No incluye `QualityScore` en esta fase.
+`DatasetProfile` contiene row/column count, perfiles de columna, métricas de filas duplicadas completas, candidate identifiers, findings/evidence estructurales, metadata de fuente y `model_version: "0.1"`. No contiene `QualityScore` ni `GovernanceAssessment`.
 
-Cada `ColumnProfile` incluye nombre, posición cero-based, dtype físico Polars, tipo inferido, counts de null/no-null, distinct/uniqueness/cardinality ratio, exceso de duplicados no nulos, flags all-null/constant, candidate identifier, estadísticas y referencias de findings. `classifications` permanece vacío: las classifications siguen siendo responsabilidad de una fase posterior.
+Cada `ColumnProfile` incluye nombre, posición cero-based, dtype físico Polars, tipo inferido, counts de null/no-null, distinct/uniqueness/cardinality ratio, exceso de duplicados no nulos, flags all-null/constant, candidate identifier, estadísticas, referencias de findings y señales internas de Quality. `classifications` permanece vacío por compatibilidad: la fuente canónica es `GovernanceAssessment.classifications`.
 
 ## Primitive type inference
 
-Tipos runtime: `NULL`, `BOOLEAN`, `INTEGER`, `FLOAT`, `STRING`, `DATE`, `DATETIME`. `FLOAT` es la representación estructural de profiling; Phase 3 podrá mapearla a la categoría `DECIMAL` definida por el Quality Model, sin modificar ese contrato.
+Tipos runtime: `NULL`, `BOOLEAN`, `INTEGER`, `FLOAT`, `STRING`, `DATE`, `DATETIME`. `FLOAT` es la representación estructural utilizada también por las señales internas del Quality Engine.
 
 La inferencia es conservadora y usa todos los valores no nulos observados. No convierte el DataFrame:
 

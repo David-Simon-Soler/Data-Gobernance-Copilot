@@ -1,13 +1,13 @@
 # Arquitectura
 
-## Forma del sistema y estado actual
+## Sistema implementado
 
-Monolito modular y stateless con frontend Next.js y backend FastAPI. Phase 9 completa la experiencia web y la demo sintética sobre la API determinista existente; la preparación de release está en curso. FastAPI expone `GET /health` y `POST /api/v1/analyze`. No hay proxy API en Next.js, DB, persistencia, autenticación, microservicios ni implementación de IA.
+Data Governance Copilot V0.1 es un monolito modular y stateless con frontend Next.js y backend FastAPI. La ruta publica implementada es:
 
 ```mermaid
 flowchart LR
-  B[Browser] --> W[Next.js frontend]
-  W --> A[FastAPI /api/v1/analyze]
+  B[Browser] --> W[Next.js]
+  W -->|direct HTTP| A[FastAPI]
   A --> I[Ingestion]
   I --> P[Profiling]
   P --> Q[Quality]
@@ -18,40 +18,40 @@ flowchart LR
   T --> W
 ```
 
-El navegador se comunica directamente con FastAPI. Next.js no contiene route handlers, middleware de proxy ni una segunda capa de reglas.
+El navegador envia `multipart/form-data` directamente a `POST /api/v1/analyze` usando `NEXT_PUBLIC_API_BASE_URL`. Next.js no contiene route handlers de API, middleware de proxy ni una segunda capa de reglas. FastAPI tambien expone `GET /health`.
 
-## Módulos y boundaries
+Cada analisis es una peticion sincrona y atomica: o devuelve un `AnalysisResponse` completo o un error seguro. No hay base de datos, persistencia, autenticacion, cola, worker de background, microservicios ni estado de sesion del servidor. El resultado vive de forma efimera en el estado del navegador y se pierde al recargar o reiniciar el flujo.
 
-- **Ingestion** valida bytes CSV/XLSX y produce `IngestedDataset`; no crea findings semánticos.
-- **Profiling** recibe `IngestedDataset`, no reparsea ni muta el DataFrame. Recoge métricas estructurales y soporte efímero de posiciones/signals deterministas, sin valores de celdas ni scores.
-- **Quality** recibe solo `DatasetProfile`, no modifica el perfil ni reejecuta parsing/profiling. Posee applicability, fórmulas, penalties, scores y findings de parser conforme a `QUALITY_MODEL.md`.
-- **Governance** recibe `DatasetProfile` y crea classifications canónicas solo con señales deterministas.
-- **Recommendations** consume `QualityScore` y `GovernanceAssessment` y produce un `RecommendationSet` determinista de propuestas `SUGGESTED` vinculadas a findings existentes.
-- **Analysis API** orquesta los motores y serializa el envelope tipado sin recalcular resultados ni incluir DataFrame, bytes o valores de celdas.
-- **Frontend** valida únicamente archivo/extensión/tamaño como preflight, envía el archivo a FastAPI y presenta la respuesta sin duplicar reglas del backend.
+## Flujo y responsabilidades
 
-### Integración Governance Engine
+`bytes no confiables -> IngestedDataset -> DatasetProfile -> QualityScore + GovernanceAssessment -> RecommendationSet -> AnalysisResponse`
 
-`DatasetProfile → Governance Engine → GovernanceAssessment`.
+- **Ingestion** valida filename, formato, contenido y limites antes de producir un `IngestedDataset` con Polars. No crea conclusiones semanticas.
+- **Profiling** consume el DataFrame una vez y crea metricas, tipos, candidate identifiers, findings estructurales y evidence. No asigna clasificaciones de gobernanza ni scores.
+- **Quality Engine** consume `DatasetProfile` y calcula aplicabilidad, dimensiones, pesos, overall score y findings propios. No reabre el archivo ni modifica el perfil.
+- **Governance Engine** consume `DatasetProfile` y produce un `GovernanceAssessment` separado con clasificaciones, findings, evidence y summary canonicos.
+- **Recommendation Engine** consume `QualityScore` y `GovernanceAssessment`; genera acciones `SUGGESTED` enlazadas a findings existentes.
+- **Analysis service** orquesta las etapas y serializa solo modelos seguros; excluye bytes, DataFrame, raw cells, muestras y posiciones internas de duplicados.
+- **Frontend** realiza solo preflight de archivo, llama a la API y presenta la respuesta. Formatea, agrupa y une por ids canonicos, pero no recalcula reglas.
 
-El Governance Engine consume `DatasetProfile`, no reabre archivos fuente, no accede a valores de celdas y no muta el perfil. Es determinista, separado del Quality Engine y no usa IA; no produce recomendaciones ni conclusiones de compliance o legales.
+### Frontera del Governance Engine
 
-El lifecycle es `bytes no confiables → validación/límites → IngestedDataset → DatasetProfile → QualityScore/GovernanceAssessment → RecommendationSet → AnalysisResponse → estado efímero del navegador → cleanup`. Todo procesamiento V0.1 es stateless, en memoria y sin persistencia.
+`DatasetProfile -> Governance Engine -> GovernanceAssessment`.
 
-## Frontera IA
+El Governance Engine no reabre archivos fuente, no accede a raw cell values y no muta `DatasetProfile`. Es determinista, esta separado del Quality Engine y no produce recomendaciones, score de compliance ni conclusiones legales.
 
-**LLM output is advisory only.** Una fase futura podría proponer significado, descripción, explicación y wording como `SUGGESTED`; no crearía ni mutaría Evidence canónica, findings `DETECTED`, metrics, scores ni governance classifications canónicas. Phase 8 no incluye proveedor LLM, chat ni código de IA.
+## Evidence-first y frontera IA
 
-## Frontend
+`DETECTED` representa un hecho calculado; `INFERRED`, una clasificacion sustentada por señales y su incertidumbre; `SUGGESTED`, una accion propuesta. Findings y evidence pertenecen al motor que los crea, y cada Recommendation referencia el finding que la origina.
 
-La experiencia web implementada se documenta en [FRONTEND.md](FRONTEND.md):
+V0.1 no contiene proveedor LLM, endpoints de IA ni generacion de contenido. Una capa IA futura es opcional y advisory-only: no puede crear o mutar evidence canonica, findings `DETECTED`, metricas, scores ni clasificaciones canonicas.
 
-```text
-Browser → Next.js frontend → FastAPI → Analysis service → deterministic engines
-```
+## Seguridad y despliegue
 
-El frontend consume `POST /api/v1/analyze` mediante `NEXT_PUBLIC_API_BASE_URL`; no accede directamente a motores ni duplica reglas. El backend y sus contratos siguen siendo la fuente de verdad. Phase 9 incorpora el polish visual y la experiencia de demo sin añadir reglas analíticas al cliente.
+El procesamiento de dominio es en memoria y sin persistencia por defecto. La API limita el body HTTP y la ingestion limita archivo, filas, columnas, hojas, celdas y expansion XLSX. Los detalles estan en [INGESTION.md](INGESTION.md), [API.md](API.md) y [PRIVACY.md](PRIVACY.md).
 
-## Seguridad y dependencias
+La configuracion local canonica usa Next.js en `http://localhost:3000` y FastAPI en `http://127.0.0.1:8000`, con CORS explicito. Un despliegue publico debe añadir aislamiento, timeouts, rate limiting, controles de abuso, monitorizacion y su propia allowlist CORS; esos controles no estan implementados por el nucleo V0.1.
 
-Polars realiza agregaciones y representación tabular; FastAPI/Pydantic delimitan la API; openpyxl lee XLSX. Next.js presenta datos escapados y no incorpora renderizado HTML arbitrario. Los contenidos permanecen como datos no confiables: no logging de celdas, HTML crudo, paths ni instrucciones. Ver [ingestión](INGESTION.md), [profiling](PROFILING.md), [API](API.md) y [privacidad](PRIVACY.md).
+## Dependencias principales
+
+FastAPI y Pydantic delimitan la API, Polars sustenta el perfil tabular y openpyxl lee XLSX. Next.js y React presentan la respuesta como datos escapados; no existe renderizado HTML arbitrario. Consulta [FRONTEND.md](FRONTEND.md) y [RELEASE.md](RELEASE.md) para la integracion y ejecucion verificadas.

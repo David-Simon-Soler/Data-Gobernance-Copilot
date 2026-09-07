@@ -1,74 +1,82 @@
-# Dominio
+# Dominio V0.1
 
-## Reglas de propiedad
+## Ownership and immutability
 
-`DatasetProfile` es el agregado efímero de un análisis: metadata, `columns`, `quality`, findings y recommendations. `ColumnProfile.classifications` es la **fuente canónica** de clasificaciones. El dataset puede exponer una vista agregada para presentación, derivada de columnas; nunca mantiene una copia independiente y mutable.
+Each analysis creates separate immutable domain values:
 
-## Enums y value objects
+`IngestedDataset -> DatasetProfile -> QualityScore + GovernanceAssessment -> RecommendationSet -> AnalysisResponse`.
+
+The dataclasses used by Profiling, Quality, Governance and Recommendations are frozen. An engine consumes the preceding value and does not mutate it. The HTTP response serializes each result under its own `analysis` key; it does not merge them into a mutable aggregate.
+
+Governance classifications are canonically stored in `GovernanceAssessment.classifications`. `ColumnProfile.classifications` is an empty compatibility field in the current profiling schema, not canonical governance storage. The frontend joins governance classifications to profile columns by stable `column_id`.
+
+## Shared enums and value objects
 
 - `AssertionLevel`: `DETECTED`, `INFERRED`, `SUGGESTED`.
 - `Severity`: `INFO`, `WARNING`, `HIGH`, `CRITICAL`.
-- `Confidence`: `LOW`, `MEDIUM`, `HIGH` exclusivamente.
+- `Confidence`: `LOW`, `MEDIUM`, `HIGH`.
 - `Applicability`: `APPLICABLE`, `NOT_APPLICABLE`, `INSUFFICIENT_DATA`.
-- `Priority`: `P0`, `P1`, `P2`, `P3`.
-- `PrimitiveType`: `BOOLEAN`, `INTEGER`, `DECIMAL`, `DATE`, `DATETIME`, `STRING`.
+- `RecommendationPriority`: `P0`, `P1`, `P2`.
+- `PrimitiveType`: `NULL`, `BOOLEAN`, `INTEGER`, `FLOAT`, `STRING`, `DATE`, `DATETIME`.
 
-`NOT_APPLICABLE` significa que una dimensión no corresponde al dataset (por ejemplo, no hay candidate identifiers). `INSUFFICIENT_DATA` significa que podría corresponder, pero no hay observaciones suficientes (por ejemplo, consistency con menos de 10 valores). Ninguno es una confidence.
+`NOT_APPLICABLE` means a quality dimension has no structural subject in this dataset. `INSUFFICIENT_DATA` means that it could apply but there are too few observations. Neither is a confidence value.
 
-## Contratos conceptuales normativos
+## Implemented contracts
 
 ### DatasetProfile
 
-`dataset_id`, `metadata` (source_name minimizado, row_count, column_count), `columns`, `quality`, `findings`, `recommendations`, `analysis_state`. Los findings de dataset y columna se referencian por id; cualquier vista de classifications se deriva de `columns[].classifications`.
+`DatasetProfile` contains row/column counts, ordered `columns`, complete-row duplicate metrics, structural candidate identifiers, profiling findings and evidence, profiling metadata and `model_version`. Internal duplicate-excess positions support deterministic Quality scoring and are not serialized by the public API.
+
+It does not contain Quality scores, Governance classifications or Recommendations.
 
 ### ColumnProfile
 
-Contrato mínimo: `column_id`, `name`, `position`, `primitive_type`, `nullable`, `row_count`, `non_null_count`, `null_count`, `null_rate`, `distinct_count`, `unique_rate`, `cardinality`, `basic_statistics`, `candidate_identifier`, `classifications`, `findings`.
+A column profile contains:
 
-`position` es cero-based y estable para el archivo analizado. `nullable` expresa presencia observada de al menos un nulo, no obligatoriedad de negocio. `cardinality` es una etiqueta derivada de `distinct_count/non_null_count`; `basic_statistics` puede ser vacío cuando no aplica. `candidate_identifier` es un objeto/estado estructural, no una primary key. `classifications` y `findings` contienen referencias o elementos con id únicos.
+- stable `column_id` and zero-based `position`;
+- name, physical dtype and inferred primitive type;
+- row, non-null, null, distinct, uniqueness and cardinality metrics;
+- duplicate-excess, constant and all-null signals;
+- an optional structural `CandidateIdentifier`;
+- safe aggregate `BasicStatistics`;
+- profiling finding ids and Quality parser signals.
 
-### Finding
-
-Contrato: `id`, `assertion_level`, `severity`, `confidence`, `category`, `subject`, `title`, `description`, `method`, `evidence_ids`, `recommendation_ids`. Un finding siempre tiene al menos una evidence canónica. `DETECTED` procede solo de regla determinista y usa confidence `HIGH`; `INFERRED` conserva método, señales y confidence; ningún finding `SUGGESTED` sustituye una métrica o clasificación canónica.
-
-### Evidence
-
-Contrato: `id`, `type`, `subject`, `rule_id`, `rule_version`, `metric`, `observed_value`, `denominator`, `affected_rows`, `sample_policy`. Puede ser métrica o señal determinista. No contiene el dataset completo; muestras son opcionales, redactadas y limitadas. Toda evidence canónica es creada por profiling/reglas deterministas, nunca por LLM.
-
-### Classification
-
-Contrato: `id`, `column_id`, `semantic_type`, `governance_categories`, `assertion_level`, `confidence`, `method`, `signals`, `evidence_ids`. Las classifications canónicas son `INFERRED` a partir de señales deterministas. Una propuesta únicamente LLM es `SUGGESTED`, no se añade a `ColumnProfile.classifications` canónicas en V0.1 y no tiene confidence canónica.
-
-### Recommendation
-
-Contrato: `id`, `finding_id`, `priority`, `action`, `rationale`, `assertion_level: SUGGESTED`. Nunca existe sin Finding. Puede redactarse a partir de un finding `DETECTED` o `INFERRED`, pero no aumenta severity ni transforma una inferencia en hecho.
+`nullable` records observed missingness, not a business requirement. A candidate identifier is a structural inference, never a confirmed primary key. Raw values and samples are not part of the contract.
 
 ### QualityScore
 
-Contrato: `overall_score`, `dimensions`, `applied_weights`, `applicability`, `not_applicable_reasons`, `model_version`. `model_version` para V0.1 es exactamente `0.1`. Cada dimensión declara score solo si es `APPLICABLE`; declara razón si es `NOT_APPLICABLE` o `INSUFFICIENT_DATA`. `overall_score` se calcula solo con pesos aplicados y no usa Confidence.
+`QualityScore` contains `overall_score`, the four ordered dimensions, applied weights, applicability, reasons for non-applicability or insufficient data, observed completeness, Quality findings/evidence and `model_version: "0.1"`.
 
-## Ejemplos conceptuales
+A dimension has a score only when `APPLICABLE`. Observed dataset completeness is factual coverage across all cells; scored structural completeness applies only to structural candidate identifiers. See [QUALITY_MODEL.md](QUALITY_MODEL.md).
 
-```json
-{"id":"F-GOV-001","assertion_level":"INFERRED","severity":"HIGH","confidence":"MEDIUM","category":"potential_personal_data","subject":{"column_id":"col:email"},"method":"governance_signals_v0.1","evidence_ids":["E-011"]}
-```
+### GovernanceAssessment
 
-```json
-{"id":"L-CLS-001","column_id":"col:contact","semantic_type":"CONTACT_INFORMATION","assertion_level":"SUGGESTED","source":"LLM","advisory_only":true}
-```
+`GovernanceAssessment` is the canonical governance output: ordered `classifications`, governance `findings`, governance `evidence`, an aggregate `summary` and `model_version: "0.1"`.
 
-```json
-{"overall_score":92,"dimensions":{"structural_completeness":100,"uniqueness":96,"validity":95,"consistency":null},"applied_weights":{"structural_completeness":35,"uniqueness":25,"validity":25},"applicability":{"consistency":"INSUFFICIENT_DATA"},"not_applicable_reasons":{"consistency":"fewer_than_10_valid_non_null_values"},"model_version":"0.1"}
-```
+Each classification has an id, `column_id`, category, `INFERRED` assertion level, confidence, deterministic flag, method, rule version, signals and evidence ids. It is derived from `DatasetProfile` without raw cell access and is not written back into the profile.
 
-```json
-{"column_id":"col:customer_id","candidate_identifier":{"kind":"STRUCTURAL_CANDIDATE_IDENTIFIER","name_signal":true,"non_null_rate":1.0,"unique_rate":0.995,"confirmed_key":false}}
-```
+### RecommendationSet
 
-## Invariantes y estados
+`RecommendationSet` contains ordered recommendations, count summaries and `model_version: "0.1"`. Every recommendation references one existing Quality or Governance finding, identifies its source, uses priority `P0`, `P1` or `P2`, and has `assertion_level: SUGGESTED`.
 
-- Cada Finding tiene evidence canónica; cada Recommendation tiene finding existente.
-- `severity` mide impacto; `confidence`, certeza. Un finding puede ser `HIGH`/`MEDIUM`.
-- Las inferencias y sugerencias no alimentan quality metrics ni scores.
-- El LLM no crea ni muta Evidence, Findings `DETECTED`, métricas, scores o classifications canónicas.
-- Estados: `RECEIVED → VALIDATED → PROFILED → ANALYZED → COMPLETED`, o `REJECTED/FAILED`; terminales activan limpieza temporal.
+A recommendation does not increase finding severity, promote an inference to fact or create evidence.
+
+### Finding and Evidence
+
+A `Finding` has a stable id, assertion level, severity, confidence, category, subject, title, description, method and evidence ids. A `Recommendation` points to a finding; findings do not depend on a recommendation being generated.
+
+`Evidence` records a rule and version, subject, metric, aggregate observed value, optional denominator/affected count, sample policy and safe structural details. It never contains the whole dataset or raw cells. `DETECTED` facts and canonical evidence are deterministic; a future LLM cannot create or mutate them.
+
+### AnalysisResponse
+
+The HTTP envelope has `schema_version: "0.1"`, safe source metadata and four separate payloads: `profiling`, `quality`, `governance` and `recommendations`. Bytes, DataFrames, raw rows, raw cell values, samples and temporary paths are excluded.
+
+## Invariants
+
+- Engine inputs remain unchanged; outputs are deterministic for the same supported input and model version.
+- Every finding references evidence owned by the same engine result.
+- Every recommendation references an existing Quality or Governance finding.
+- Severity expresses impact; confidence expresses certainty; priority orders a suggested action.
+- `INFERRED` and `SUGGESTED` values do not feed deterministic Quality metrics or scores.
+- Governance signals require human review and do not establish legal status.
+- Optional future AI remains advisory and cannot replace canonical deterministic output.

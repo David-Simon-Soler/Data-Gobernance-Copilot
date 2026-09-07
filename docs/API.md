@@ -2,7 +2,7 @@
 
 ## Purpose and scope
 
-Phase 7.1 implementa el contrato HTTP mínimo para un análisis determinista de un único CSV/XLSX. Es síncrono, stateless y sin persistencia. No incluye autenticación, cuentas, jobs, batch, conectores, AI, chat, billing ni historial.
+La API implementa el contrato HTTP mínimo para un análisis determinista de un único CSV/XLSX. Es síncrona, stateless y sin persistencia. No incluye autenticación, cuentas, jobs, batch, conectores, IA, chat, billing ni historial.
 
 ## Architecture
 
@@ -58,7 +58,7 @@ Se reutilizan `DatasetProfile`, `QualityScore`, `GovernanceAssessment` y `Recomm
 
 ## Orchestration and atomicity
 
-Una capa de aplicación delgada ejecutará, en orden, `ingest_dataset` → `profile_dataset` → `evaluate_quality` → `evaluate_governance` → `generate_recommendations`. La ruta no contiene reglas. Si falla cualquier etapa, se devuelve un error completo; no hay respuesta parcial ni fallback. Cleanup se garantiza en éxito, fallo y cancelación según el lifecycle de Ingestion/Privacy.
+Una capa de aplicación delgada ejecuta, en orden, `ingest_dataset` -> `profile_dataset` -> `evaluate_quality` -> `evaluate_governance` -> `generate_recommendations`. La ruta no contiene reglas. Si falla cualquier etapa, devuelve un error completo; no hay respuesta parcial ni fallback.
 
 ## HTTP statuses and errors
 
@@ -93,7 +93,7 @@ V0.1 es síncrono. El timeout operativo objetivo es **30 segundos**. Concurrenci
 
 ## Traceability and privacy
 
-El frontend podrá resolver `Recommendation.finding_id` contra los findings de Quality/Governance y sus `evidence_ids`, sin inferir ownership por strings. No hay persistencia ni almacenamiento posterior al request. Logging permitido: request correlation, status, duración, tamaño, formato y counts agregados tras ingestión. No se registran filename salvo necesidad operativa, campos raw, celdas, filas, samples, bytes ni excepciones con contenido.
+El frontend resuelve `Recommendation.finding_id` contra los findings de Quality/Governance y sus `evidence_ids`, sin inferir ownership por strings. No hay persistencia ni almacenamiento posterior al request. La política permite logging operativo de status, duración, tamaño, formato y counts agregados; no permite raw fields, celdas, filas, samples, bytes, paths ni excepciones con contenido.
 
 ## CORS, versioning and request ID
 

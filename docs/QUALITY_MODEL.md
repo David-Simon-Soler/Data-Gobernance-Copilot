@@ -4,25 +4,25 @@
 
 ## Datos base y aplicabilidad
 
-Sea `R` filas, `C` columnas y `N=R×C`. Un nulo es celda vacía, `null` o marcador configurado; `"0"` y `"false"` no son nulos. `R=0` produce `overall_score=null`, todas las dimensiones `INSUFFICIENT_DATA` y razón `empty_dataset`.
+Sea `R` filas, `C` columnas y `N=R×C`. Un nulo es un valor `null` del DataFrame. V0.1 no configura marcadores textuales de null: `""`, `"0"` y `"false"` no son nulos, y CSV conserva los campos vacíos como strings. `R=0` produce `overall_score=null`, todas las dimensiones `INSUFFICIENT_DATA` y razón `empty_dataset`.
 
 `APPLICABLE` tiene denominador y regla válidos; `NOT_APPLICABLE` no tiene sujeto estructural (p. ej., sin candidate identifiers); `INSUFFICIENT_DATA` podría aplicar pero faltan observaciones. Las dimensiones no aplicables no reciben score ni peso. Las columnas constantes, categorías legítimas y texto no se penalizan por uniqueness.
 
-## Primitive type inference determinista
+## Quality parser type selection
 
-Se opera sobre valores no nulos tras trim de espacios externos. Si no nulos es 0, tipo `STRING`. Un tipo se acepta solo si al menos **98%** de valores no nulos pasan su parser; los restantes quedan como valores inválidos para validity. Si ningún parser alcanza 98%, el tipo es `STRING`; no se fuerza un tipo mixto. No se infieren tipos semánticos aquí.
+Quality aplica trim externo solo para validar, sin mutar el DataFrame ni cambiar nulls. `ColumnProfile.inferred_primitive_type` (Profiling) exige que todos los valores no nulos sean compatibles; por separado, `QualityColumnSignals.primitive_type` selecciona un parser cuando al menos **98%** de los valores no nulos lo superan. El resto cuenta como invalid para Validity. Sin parser al 98%, Quality usa `STRING`; sin valores no nulos usa `NULL`.
 
 Antes de tipos numéricos: si al menos 95% de tokens son dígitos de anchura mayor que uno y comienzan con `0`, se conserva `STRING` para proteger códigos como `00123`.
 
-Precedencia: `BOOLEAN → INTEGER → DECIMAL → DATETIME → DATE → STRING`. Datetime precede date para no perder hora.
+Precedencia de selección Quality: `BOOLEAN -> INTEGER -> FLOAT -> DATE -> DATETIME -> STRING`. Los parsers DATE y DATETIME usan formas ISO distintas, por lo que una fecha-hora no se degrada a fecha.
 
-- `BOOLEAN`: `true/false`, `yes/no` en cualquier casing; `0/1` solos no bastan, debe existir al menos un literal alfabético booleano.
+- `BOOLEAN`: bool físico o strings `true/false`, `yes/no` en cualquier casing; `0/1` no son Boolean válidos.
 - `INTEGER`: regex ASCII `^[+-]?(0|[1-9][0-9]*)$`; sin separadores de miles.
-- `DECIMAL`: regex ASCII `^[+-]?(0|[1-9][0-9]*)\.[0-9]+$`; solo punto decimal, sin separadores de miles ni coma decimal.
+- `FLOAT`: regex ASCII `^[+-]?(0|[1-9][0-9]*)\.[0-9]+$`; solo punto decimal, sin separadores de miles, coma decimal ni exponentes.
 - `DATE`: ISO exacto `YYYY-MM-DD`, calendario válido.
 - `DATETIME`: ISO exacto `YYYY-MM-DDTHH:MM:SS`, fracción opcional y sufijo opcional `Z` o `±HH:MM`; calendario/hora válidos.
 
-`01/02/2025`, fechas con slash, coma decimal, separadores de miles y formatos locales permanecen `STRING`. Si ≥98% coinciden con un formato de fecha ambiguo común, se puede emitir finding `ambiguous_date_format` `DETECTED`, pero no se interpreta con locale supuesto. Locale V0.1 es invariable: ISO/ASCII únicamente.
+`01/02/2025`, fechas con slash, coma decimal, separadores de miles y formatos locales permanecen `STRING`; V0.1 no emite un finding de fecha ambigua. El locale es invariable: ISO/ASCII únicamente.
 
 ## Dimensiones y fórmulas
 
@@ -49,11 +49,11 @@ Con `I` no vacío: `U=100×(1−min(1,0.8×average(d_i)+0.2×D_u))`. Sin `I` y `
 
 ### Validity — peso 25
 
-Para cada columna de primitive type `BOOLEAN`, `INTEGER`, `DECIMAL`, `DATE` o `DATETIME`, `invalid_i` es el número de valores no nulos que no pasa el parser exacto del tipo. `STRING` no aplica. `V=100×(1−Σinvalid_i/Σnon_null_i)` sobre elegibles. Si no hay columnas elegibles, `NOT_APPLICABLE`, razón `no_typed_columns`. Los inválidos generan `malformed_value`/`type_issue`.
+Para cada columna cuyo Quality parser type es `BOOLEAN`, `INTEGER`, `FLOAT`, `DATE` o `DATETIME`, `invalid_i` es el número de valores no nulos que no pasa el parser exacto. `STRING` y `NULL` no aplican. `V=100×(1−Σinvalid_i/Σnon_null_i)` sobre elegibles. Si no hay columnas elegibles, `NOT_APPLICABLE`, razón `no_typed_columns`. Los inválidos generan únicamente `malformed_value` en V0.1.
 
 ### Consistency — peso 15
 
-Solo usa familias deterministas conocidas, sin NLP ni reglas de negocio. Una columna es elegible con al menos 10 valores no nulos y al menos 98% de valores válidos en una de estas familias: BOOLEAN (familias exactas lower/upper/title de `true/false` o `yes/no`), INTEGER/DECIMAL (signo ausente, `+` o `-`; decimal siempre `.`), DATE ISO, DATETIME ISO (sin timezone, `Z`, u offset `±HH:MM`).
+Solo usa familias deterministas conocidas, sin NLP ni reglas de negocio. Una columna es elegible con al menos 10 valores no nulos y al menos 98% de valores válidos en una de estas familias: BOOLEAN (lower/upper/title de `true/false` o `yes/no`), INTEGER/FLOAT (signo ausente, `+` o `-`; float siempre con `.`), DATE ISO y DATETIME ISO (sin timezone, `Z` u offset `±HH:MM`).
 
 Cada valor válido se asigna a su familia léxica exacta. El formato dominante es la familia más frecuente; en empate se toma el identificador de familia lexicográficamente menor. `inconsistent_i` cuenta valores válidos fuera de la familia dominante; los inválidos se cuentan solo en validity. `S=100×(1−Σinconsistent_i/Σvalid_non_null_i)`. Sin elegibles: `INSUFFICIENT_DATA` si hay familias potenciales con <10 valores; en otro caso `NOT_APPLICABLE` con razón `no_recognized_format_family`.
 

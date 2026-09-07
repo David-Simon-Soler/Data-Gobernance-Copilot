@@ -1,19 +1,38 @@
 # Privacidad y seguridad
 
-## Lifecycle, minimización y estado actual
+## Protecciones implementadas en V0.1
 
-El modo objetivo es local: procesamiento temporal, sin persistencia por defecto y cleanup ante éxito, fallo, cancelación o expiración. Phase 1.1 procesa bytes enteramente en memoria y no crea temporales. Si una fase futura necesita disco, usará un directorio por análisis con permisos restringidos y la misma limpieza de estado terminal.
+V0.1 procesa un archivo por peticion, en memoria y sin persistencia por defecto. No hay base de datos, cuenta, historial ni almacenamiento de resultados. El response de analisis no incluye bytes, DataFrame, raw rows, cell values, samples ni posiciones internas de duplicados.
 
-No se registran valores, filas, muestras, nombres completos ni contenido sensible; solo ids efímeros, tamaños, errores clasificados y métricas agregadas mínimas. Errores HTTP futuros no deben exponer valores, filas, paths internos ni trazas de dataset.
+La politica de logging permite datos operativos minimos, como status, duracion, tamaño, formato y counts agregados. No se deben registrar contenido de celdas, filas, muestras, bytes, paths internos ni excepciones que incorporen datos del archivo. Los errores HTTP implementados son genericos y no exponen trazas o valores.
 
-## Controles implementados
+## Formatos y controles de archivo
 
-Los filenames son metadata no confiable y no construyen paths. Se aplican límites por archivo: tamaño, filas, columnas, sheets, celdas, entradas ZIP y tamaño descomprimido. CSV acepta UTF-8/UTF-8 BOM y delimitadores comma, semicolon, tab y pipe; encoding o delimitador ambiguo se rechazan. XLSX se valida como ZIP no confiable, se abre read-only con enlaces externos desactivados, no ejecuta fórmulas/macros y convierte fórmulas a valor no disponible.
+Solo se aceptan CSV y XLSX; `.xls`, `.xlsm` y otros formatos se rechazan. Filename y MIME son metadata no confiable y el filename nunca construye un path.
 
-Celdas y encabezados nunca se deben renderizar como HTML crudo ni tratar como instrucciones de sistema o prompt. No hay logging de contenido.
+Los limites implementados son 5 MiB por archivo, 6 MiB para el body multipart HTTP, 100.000 filas, 250 columnas, 20 hojas, 1.000.000 de celdas, 2.000 entradas ZIP y 20 MiB descomprimidos para XLSX. CSV exige UTF-8 o UTF-8 BOM y un delimitador no ambiguo entre comma, semicolon, tab y pipe.
 
-## Controles previstos
+XLSX se preinspecciona como ZIP, se abre con openpyxl en `read_only=True`, `data_only=False` y `keep_links=False`. Las formulas no se ejecutan: se detectan por tipo de celda, se convierten a valor no disponible y generan el warning `formulas_not_evaluated`. Al usar `data_only=False`, un cached formula result nunca entra al DataFrame como dato fiable. Macros y enlaces externos no se habilitan.
 
-La frontera HTTP pública añadirá límites de request, tiempo, memoria y concurrencia, rate limiting y aislamiento de ejecución. La demo pública usará solo fixtures sintéticos y límites más estrictos.
+## Browser y API
 
-`none` es el proveedor IA por defecto. Si se activa un proveedor futuro, se informará qué sale del equipo; se enviarán primero metadata, métricas y findings. Nunca se enviará el dataset completo salvo consentimiento explícito y necesidad justificada; muestras mínimas, redactadas y opt-in cuando sea viable.
+El navegador envia el archivo al FastAPI configurado; el procesamiento no ocurre enteramente en el navegador. El frontend mantiene el resultado solo como estado efimero, no usa local/session storage y no renderiza HTML arbitrario. Raw rows no vuelven en `AnalysisResponse`.
+
+CORS usa una allowlist configurable. La receta local permite `http://localhost:3000` y llama a `http://127.0.0.1:8000`; un origen distinto no recibe permiso CORS.
+
+## Controles necesarios para Internet
+
+Las protecciones anteriores reducen la superficie local, pero no hacen segura por si sola una API publica sin restricciones. Un despliegue en Internet todavia debe proporcionar:
+
+- rate limiting y controles de abuso;
+- limites de concurrencia y aislamiento de CPU/memoria;
+- timeouts en hosting, proxy y proceso;
+- limites de request tambien en el reverse proxy;
+- CORS especifico del despliegue;
+- monitorizacion operativa, alertas y respuesta a incidentes.
+
+V0.1 no implementa esos controles de plataforma ni afirma estar preparado para exposicion publica sin ellos.
+
+## IA diferida
+
+No se usa IA en V0.1. Si se incorpora un proveedor futuro, debera existir consentimiento y disclosure claros sobre los datos que salen del entorno. La frontera evidence-first impide que una salida generada cree o modifique facts, metrics, scores, evidence o clasificaciones canonicas.

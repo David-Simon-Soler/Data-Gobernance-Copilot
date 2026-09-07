@@ -2,32 +2,30 @@
 
 ## Problema
 
-Un analista, estudiante o Data Steward recibe un archivo y necesita saber qué contiene, si puede utilizarse con confianza y qué revisar primero. El perfilado técnico no basta; una IA no debe inventar métricas ni conclusiones.
+Un analista o Data Steward recibe un archivo y necesita entender su estructura, detectar anomalias medibles y decidir que revisar primero. El perfilado tecnico aislado no ofrece por si solo trazabilidad entre señales, findings y acciones; una interpretacion generada tampoco debe inventar metricas ni conclusiones.
 
-## Usuarios y jobs-to-be-done
+## Propuesta V0.1
 
-- Analista de datos: evaluar un dataset antes de analizarlo.
-- Data Steward / governance practitioner: localizar riesgos y huecos de documentación.
-- Estudiante o recruiter: demostrar un proceso de calidad explicable.
+Data Governance Copilot ofrece una primera evaluacion reproducible de un CSV o XLSX:
 
-Tras cargar un archivo, el usuario debe poder inspeccionar el perfil, la evidencia de cada finding y la siguiente acción prioritaria.
+1. valida y normaliza el archivo;
+2. perfila estructura y metricas deterministas;
+3. calcula calidad estructural con aplicabilidad explicita;
+4. presenta governance signals requiring review;
+5. enlaza findings con evidence y recomendaciones priorizadas.
 
-## Propuesta de valor y principios
+`DETECTED` es un hecho calculado, `INFERRED` una clasificacion sustentada por señales e incertidumbre, y `SUGGESTED` una accion propuesta. Las tres capas permanecen separadas.
 
-Una primera revisión local, reproducible y orientada a gobernanza. `DETECTED` es un hecho calculado; `INFERRED`, una clasificación con confianza y señales; `SUGGESTED`, una acción vinculada a un finding. Nunca se presentan inferencias como hechos.
+## Usuarios y resultado esperado
 
-## Flujo y MVP
+El flujo sirve a analistas de datos, governance practitioners, revisores tecnicos y personas que evaluan el proyecto. Tras analizar un archivo, el usuario puede inspeccionar overview, Quality, Governance, recomendaciones, evidence y el inventario de columnas, y rastrear cada accion hasta su finding fuente.
 
-1. Selección de CSV o XLSX permitido.
-2. Validación y proceso temporal.
-3. Overview, dimensiones y findings ordenados.
-4. Evidencia por columna/finding, clasificaciones y diccionario draft.
-5. Limpieza de recursos al terminar.
+La demo sintetica muestra que un score estructural agregado alto puede coexistir con duplicados, valores malformed y governance signals que requieren revision humana.
 
-V0.1 abarca un único dataset, profiling determinista, cuatro dimensiones, detección prudente de posibles datos personales, evidencia y recomendaciones. No hay cuentas, persistencia, conectores, histórico, workspaces, RBAC ni pagos.
+## Alcance y limites
 
-## Límites, claims y éxito
+V0.1 analiza un dataset por peticion, de forma stateless y sin persistencia. Incluye CSV/XLSX, profiling determinista, cuatro dimensiones de Quality, clasificaciones prudentes de gobernanza, potential personal data, findings y recomendaciones `P0/P1/P2`.
 
-No es auditoría oficial, legal compliance, BI/ETL, catálogo, lineage ni chat. Permitidos: “automated data profiling”, “data quality heuristic”, “potential personal data”, “potential governance risk” y “suggested data dictionary”. Prohibidos: “GDPR compliant”, “compliance checker”, “auditoría oficial” y “garantiza calidad”.
+No es una auditoria oficial, un compliance checker, una opinion legal, un score de riesgo de gobernanza ni una garantia de calidad. No confirma PII o datos personales, no certifica GDPR y no determina si un dataset es seguro o apto para un uso concreto.
 
-Éxito: fixtures sintéticos producen resultados repetibles; cada finding tiene evidencia legible; IA no origina números; un usuario identifica una acción P0/P1 sin reglas ocultas.
+Fuera de V0.1: cuentas, autenticacion, base de datos, historial, conectores, lineage, data contracts, workspaces, RBAC, pagos, export, BI/ETL, chat e IA. Cualquier IA futura sera opcional y advisory-only.

@@ -1,15 +1,27 @@
 # Roadmap
 
-1. **Phase 0 — Product & Architecture**: completa.
-2. **Phase 1 — Ingestion**: completa. Validación CSV/XLSX, límites, lifecycle sin temporales, contratos de error y tests.
-3. **Phase 2 — Profiling**: completa. Perfil estructural, tipos conservadores, nulls, cardinalidad, estadísticas, duplicados, candidate identifiers y evidence determinista.
-4. **Phase 3 — Quality Engine**: completa. QualityScore V0.1 determinista, aplicabilidad, pesos, completeness observada/estructural, uniqueness sin doble penalización, validity y consistency canónicas.
-5. **Phase 4 — Governance Engine**: completa. Taxonomía canónica, reglas deterministas versionadas, clasificación semántica con evidence, agregación de confidence, potential personal data, potential quasi-identifier y controles de falsos positivos; sin IA ni scoring de compliance/legal.
-6. **Phase 5 — Recommendation Engine**: completa. Recommendation Model 0.1 determinista y trazable a findings/evidence existentes.
-7. **Phase 6 — Optional AI**: diferida. No existe implementación de IA en V0.1; cualquier salida futura será advisory-only.
-8. **Phase 7 — Analysis API**: completa. Contrato HTTP V0.1, orquestación determinista, errores seguros, CORS y límites.
-9. **Phase 8 — Frontend**: completa, validada y committed. Contrato en [FRONTEND.md](FRONTEND.md). Incluye carga, overview, evidencia, findings, recomendaciones, inventario de columnas, privacidad y validación de dependencias.
-10. **Phase 9 — Demo & Polish**: completa y validada. Incluye Phase 9.1 (base visual, carga y Overview), Phase 9.2 (Quality, Governance, findings, evidence y recomendaciones), Phase 9.2b (reducción de densidad visual con trazabilidad preservada), Phase 9.3 (inventario unido a clasificaciones canónicas, navegación activa, responsive y accesibilidad), Phase 9.4 (dataset sintético por el pipeline real) y Phase 9.5 (QA visual final, nombres de columna legibles, semántica ARIA y limpieza de código obsoleto).
-11. **Phase 10 — QA & Public Release**: siguiente fase. Pruebas completas, seguridad de archivos y revisión final de claims.
+## Completed product phases
 
-Fixtures futuros y ficticios: `clean_customers`, `dirty_customers`, `duplicate_ids`, `missing_values`, `mixed_types`, `potential_personal_data`, `high_cardinality`, `constant_columns`, `outliers`, `malformed_dates`, `empty_dataset`, `wide_dataset`, `spreadsheet_edge_cases`.
+- **Phase 0 - Product and architecture:** evidence-first model, governance boundaries, privacy model and V0.1 scope.
+- **Phase 1 - Ingestion:** secure CSV/XLSX normalization, resource limits and error contracts.
+- **Phase 2 - Profiling:** deterministic structure, types, missingness, cardinality, duplicates, candidate identifiers and evidence.
+- **Phase 3 - Quality Engine:** Quality Model V0.1, applicability, observed/structural completeness, uniqueness, validity and consistency.
+- **Phase 4 - Governance Engine:** versioned taxonomy and deterministic classifications with confidence, false-positive controls and human-review language.
+- **Phase 5 - Recommendation Engine:** deterministic `P0/P1/P2` actions traced to existing findings and evidence.
+- **Phase 6 - Optional AI:** deliberately deferred; V0.1 contains no AI implementation.
+- **Phase 7 - Analysis API:** synchronous typed FastAPI orchestration, safe errors, CORS and request limits.
+- **Phase 8 - Frontend:** single-route Next.js experience, upload, results, traceability, inventory and dependency hardening.
+- **Phase 9 - Demo and polish:** final information architecture, responsive/accessibility work, synthetic demo and visual QA.
+
+## Release preparation
+
+- **Phase 10.0 - Release contract and QA plan:** complete.
+- **Phase 10.1 - Reproducibility and local run:** complete.
+- **Phase 10.2 - Critical-path E2E and smoke:** complete; five Chromium tests use a real FastAPI backend and production Next.js.
+- **Phase 10.3 - Public README and documentation closure:** complete and validated.
+- **Phase 10.4 - Security and repository audit:** next.
+- **Phase 10.5 - Release decision:** pending.
+
+## Deferred beyond V0.1
+
+Optional advisory AI, accounts, authentication, persistence, history, databases, connectors, lineage, configurable rules, background jobs, collaboration, exports and public deployment infrastructure require separate contracts and are not implied by V0.1.
