@@ -2,7 +2,7 @@
 
 ## Forma del sistema y estado actual
 
-Monolito modular y stateless con frontend Next.js y backend FastAPI. Phase 8 implementa la experiencia web sobre la API determinista existente. FastAPI expone `GET /health` y `POST /api/v1/analyze`. No hay proxy API en Next.js, DB, persistencia, autenticación, microservicios ni implementación de IA.
+Monolito modular y stateless con frontend Next.js y backend FastAPI. Phase 9 completa la experiencia web y la demo sintética sobre la API determinista existente; la preparación de release está en curso. FastAPI expone `GET /health` y `POST /api/v1/analyze`. No hay proxy API en Next.js, DB, persistencia, autenticación, microservicios ni implementación de IA.
 
 ```mermaid
 flowchart LR
@@ -50,7 +50,7 @@ La experiencia web implementada se documenta en [FRONTEND.md](FRONTEND.md):
 Browser → Next.js frontend → FastAPI → Analysis service → deterministic engines
 ```
 
-El frontend consume `POST /api/v1/analyze` mediante `NEXT_PUBLIC_API_BASE_URL`; no accede directamente a motores ni duplica reglas. El backend y sus contratos siguen siendo la fuente de verdad. Phase 9 conserva el polish visual, la experiencia de demo y otras mejoras explícitamente diferidas.
+El frontend consume `POST /api/v1/analyze` mediante `NEXT_PUBLIC_API_BASE_URL`; no accede directamente a motores ni duplica reglas. El backend y sus contratos siguen siendo la fuente de verdad. Phase 9 incorpora el polish visual y la experiencia de demo sin añadir reglas analíticas al cliente.
 
 ## Seguridad y dependencias
 

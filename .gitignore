@@ -16,3 +16,11 @@ apps/web/.env.local
 
 # Python build metadata
 *.egg-info/
+
+# General generated reports and temporary files
+.coverage
+coverage.xml
+htmlcov/
+*.tmp
+*.bak
+*~
