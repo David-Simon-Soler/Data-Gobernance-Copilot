@@ -1,6 +1,9 @@
+import asyncio
 import json
+from io import BytesIO
+from zipfile import ZIP_DEFLATED, ZipFile
 from fastapi.testclient import TestClient
-from app.main import app
+from app.main import MAX_HTTP_BODY, RequestSizeLimitMiddleware, app
 from app.ingestion.errors import DatasetLimitError
 
 client=TestClient(app)
@@ -24,6 +27,11 @@ def test_missing_file_is_safe_422():
 def test_filename_and_format_errors():
     r=client.post('/api/v1/analyze',files={'file':('x.txt',b'hello','text/plain')}); assert r.status_code==415 and r.json()['error']['code']=='unsupported_format'
     r=client.post('/api/v1/analyze',files={'file':('',b'a,b\n1,2\n','text/csv')}); assert r.status_code in (400,422)
+    r=client.post('/api/v1/analyze',files={'file':('empty.csv',b'','text/csv')})
+    assert r.status_code==400 and r.json()['error']['code']=='empty_dataset'
+    r=client.post('/api/v1/analyze',files={'file':('malformed.csv',b'id,value\n1,SECRET_CSV_VALUE,extra\n','text/csv')})
+    assert r.status_code==400 and r.json()['error']['code']=='malformed_dataset'
+    assert 'SECRET_CSV_VALUE' not in r.text
 
 def test_request_and_file_limits():
     r=client.post('/api/v1/analyze',content=b'x'*(6*1024*1024+1),headers={'content-type':'application/octet-stream'}); assert r.status_code==413 and r.json()['error']['code']=='request_too_large'
@@ -57,3 +65,96 @@ def test_internal_error_is_safe(monkeypatch):
     def fail(*args,**kwargs): raise RuntimeError('SECRET_INTERNAL_VALUE /home/private/path alice@example.test')
     monkeypatch.setattr('app.main.analyze_dataset',fail)
     r=TestClient(app, raise_server_exceptions=False).post('/api/v1/analyze',files={'file':('x.csv',b'a\n1\n','text/csv')}); assert r.status_code==500; text=r.text; assert 'internal_error' in text and 'SECRET_INTERNAL_VALUE' not in text and '/home/private/path' not in text
+
+
+def test_request_size_limit_enforces_declared_and_streamed_boundaries() -> None:
+    assert MAX_HTTP_BODY == 6 * 1024 * 1024
+
+    async def exercise(headers, chunks):
+        downstream_completed = False
+        sent = []
+        index = 0
+
+        async def downstream(scope, receive, send):
+            nonlocal downstream_completed
+            while True:
+                message = await receive()
+                if not message.get("more_body", False):
+                    break
+            downstream_completed = True
+            await send({"type": "http.response.start", "status": 204, "headers": []})
+            await send({"type": "http.response.body", "body": b""})
+
+        async def receive():
+            nonlocal index
+            body = chunks[index] if index < len(chunks) else b""
+            index += 1
+            return {
+                "type": "http.request",
+                "body": body,
+                "more_body": index < len(chunks),
+            }
+
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": "POST",
+            "scheme": "http",
+            "path": "/api/v1/analyze",
+            "raw_path": b"/api/v1/analyze",
+            "query_string": b"",
+            "headers": headers,
+            "client": ("testclient", 1),
+            "server": ("testserver", 80),
+        }
+        async def send(message):
+            sent.append(message)
+
+        middleware = RequestSizeLimitMiddleware(downstream, MAX_HTTP_BODY)
+        await middleware(scope, receive, send)
+        return downstream_completed, sent
+
+    exact = [b"x" * (3 * 1024 * 1024), b"x" * (3 * 1024 * 1024)]
+    completed, sent = asyncio.run(exercise([], exact))
+    assert completed is True
+    assert sent[0]["status"] == 204
+
+    completed, sent = asyncio.run(exercise([], [*exact, b"x"]))
+    assert completed is False
+    assert sent[0]["status"] == 413
+    assert json.loads(sent[1]["body"]) == {
+        "error": {
+            "code": "request_too_large",
+            "message": "The HTTP request exceeds the configured size limit.",
+        }
+    }
+
+    declared_over = [(b"content-length", str(MAX_HTTP_BODY + 1).encode())]
+    completed, sent = asyncio.run(exercise(declared_over, []))
+    assert completed is False
+    assert sent[0]["status"] == 413
+
+
+def test_malformed_xlsx_xml_maps_to_safe_deterministic_400(xlsx_bytes) -> None:
+    source = xlsx_bytes({"Data": [["id"], [1]]})
+    output = BytesIO()
+    with ZipFile(BytesIO(source)) as source_archive, ZipFile(output, "w", ZIP_DEFLATED) as target:
+        for info in source_archive.infolist():
+            payload = source_archive.read(info.filename)
+            if info.filename == "xl/worksheets/sheet1.xml":
+                payload = b"<worksheet><SECRET_XML"
+            target.writestr(info, payload)
+
+    response = client.post(
+        "/api/v1/analyze",
+        files={"file": ("malformed.xlsx", output.getvalue(), "application/octet-stream")},
+    )
+    assert response.status_code == 400
+    assert response.json() == {
+        "error": {
+            "code": "malformed_dataset",
+            "message": "The uploaded dataset could not be processed.",
+        }
+    }
+    assert "SECRET_XML" not in response.text

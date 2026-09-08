@@ -842,3 +842,27 @@ describe("Phase 9.4 synthetic demo", () => {
     expect(generator).not.toContain("overall_score");
   });
 });
+
+
+describe("untrusted response rendering", () => {
+  it("renders an HTML-like API filename as inert text", async () => {
+    const hostileName = '<img src="x" onerror="globalThis.__DGC_XSS__=true">.csv';
+    const value = {
+      ...fixture,
+      metadata: {
+        ...fixture.metadata,
+        source_filename: hostileName,
+      },
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success(value)));
+    render(<Home />);
+    choose(hostileName);
+    submit();
+
+    expect(
+      await screen.findByRole("heading", { name: hostileName, level: 1 }),
+    ).toBeInTheDocument();
+    expect(document.querySelector('img[src="x"]')).toBeNull();
+    expect((globalThis as typeof globalThis & { __DGC_XSS__?: boolean }).__DGC_XSS__).toBeUndefined();
+  });
+});

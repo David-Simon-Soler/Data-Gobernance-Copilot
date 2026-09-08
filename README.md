@@ -47,7 +47,7 @@ Browser -> Next.js -> direct HTTP -> FastAPI -> Ingestion -> Profiling
                                             -> typed response
 ```
 
-Analysis is synchronous and in memory. The browser calls FastAPI directly; there is no Next.js API proxy, database, persistence, authentication or background queue. The backend remains the source of truth for every analytical rule. See [Architecture](docs/ARCHITECTURE.md) and the [API contract](docs/API.md).
+Analysis is synchronous and the domain pipeline runs in bounded memory. The browser calls FastAPI directly; there is no Next.js API proxy, database, persistence, authentication or background queue. The HTTP multipart framework may spool upload data to an OS-managed temporary file before the domain pipeline receives it; that temporary lifecycle is framework-managed, not application persistence. The backend remains the source of truth for every analytical rule. See [Architecture](docs/ARCHITECTURE.md) and the [API contract](docs/API.md).
 
 ## Quick start
 

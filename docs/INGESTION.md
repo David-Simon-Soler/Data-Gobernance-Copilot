@@ -20,4 +20,4 @@ Workbook se abre en modo lectura, sin enlaces externos. Las fórmulas no se ejec
 
 ## Seguridad
 
-La API de dominio procesa bytes y no construye paths con filenames. No hay temporales en la implementación actual. Los valores no se registran ni se deben renderizar como HTML crudo. Errores no incluyen contenido de filas, paths internos o trazas. La ingesta trata XLSX como ZIP/XML no confiable y aplica límites antes de normalizar.
+La API de dominio procesa bytes y no construye paths con filenames. El dominio no crea archivos temporales; el parser multipart de Starlette puede hacer spooling previo a un temporal gestionado por el sistema operativo, que no constituye persistencia de aplicacion. Los valores no se registran ni se deben renderizar como HTML crudo. Errores no incluyen contenido de filas, paths internos o trazas. La ingesta trata XLSX como ZIP/XML no confiable y aplica límites antes de normalizar.

@@ -1,4 +1,5 @@
 from io import BytesIO
+from xml.etree.ElementTree import ParseError
 from zipfile import BadZipFile, ZipFile, is_zipfile
 
 import polars as pl
@@ -15,13 +16,15 @@ def read_xlsx(
     _validate_xlsx_archive(content, limits)
     try:
         workbook = load_workbook(BytesIO(content), read_only=True, data_only=False, keep_links=False)
-    except (BadZipFile, InvalidFileException, OSError, ValueError) as error:
+    except (BadZipFile, InvalidFileException, OSError, ParseError, ValueError) as error:
         raise MalformedDatasetError("XLSX workbook cannot be opened") from error
     try:
         if len(workbook.worksheets) > limits.max_sheets:
             raise DatasetLimitError("XLSX sheet limit exceeded")
         worksheet = _select_sheet(workbook, requested_sheet, limits)
         return _read_worksheet(worksheet, limits)
+    except ParseError as error:
+        raise MalformedDatasetError("XLSX workbook contains malformed XML") from error
     finally:
         workbook.close()
 
@@ -60,6 +63,8 @@ def _select_sheet(workbook: object, requested_sheet: str | None, limits: Ingesti
 def _validate_worksheet_dimensions(worksheet: object, limits: IngestionLimits) -> None:
     max_row = worksheet.max_row  # type: ignore[attr-defined]
     max_column = worksheet.max_column  # type: ignore[attr-defined]
+    if max_row is None or max_column is None:
+        raise MalformedDatasetError("XLSX worksheet dimensions are missing")
     if max_column > limits.max_columns:
         raise DatasetLimitError("XLSX column limit exceeded")
     if max_row > limits.max_rows + 1:

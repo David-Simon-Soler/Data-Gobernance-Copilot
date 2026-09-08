@@ -67,12 +67,41 @@ def test_rejects_inconsistent_csv_rows() -> None:
 
 
 def test_enforces_file_row_and_column_limits() -> None:
+    exact_file = b"id\n" + (b"x" * 51 + b"\n") * 99_999
+    exact_file += b"x" * (5 * 1024 * 1024 - len(exact_file) - 1) + b"\n"
+    assert len(exact_file) == 5 * 1024 * 1024
+    accepted_file = ingest_dataset(exact_file, "exact_file.csv")
+    assert accepted_file.row_count == 100_000
+
     with pytest.raises(FileTooLargeError):
-        ingest_dataset(b"id\n1\n", "large.csv", limits=IngestionLimits(max_file_bytes=3))
+        ingest_dataset(exact_file + b"x", "large.csv")
+
+    exact_rows = b"id\n" + b"1\n" * 100_000
+    assert ingest_dataset(exact_rows, "exact_rows.csv").row_count == 100_000
     with pytest.raises(DatasetLimitError):
-        ingest_dataset(b"id\n1\n2\n", "rows.csv", limits=IngestionLimits(max_rows=1))
+        ingest_dataset(exact_rows + b"1\n", "rows.csv")
+
+    headers = ",".join(f"c{index}" for index in range(250))
+    values = ",".join("1" for _ in range(250))
+    exact_columns = f"{headers}\n{values}\n".encode()
+    assert ingest_dataset(exact_columns, "exact_columns.csv").column_count == 250
     with pytest.raises(DatasetLimitError):
-        ingest_dataset(b"a,b\n1,2\n", "columns.csv", limits=IngestionLimits(max_columns=1))
+        ingest_dataset(exact_columns.replace(b"\n", b",extra\n", 1), "columns.csv")
+
+
+def test_custom_limits_are_inclusive_at_the_boundary() -> None:
+    content = b"id\n1\n"
+    limits = IngestionLimits(max_file_bytes=len(content), max_rows=1, max_columns=1)
+    dataset = ingest_dataset(content, "boundary.csv", limits=limits)
+    assert dataset.row_count == 1
+    assert dataset.column_count == 1
+
+    with pytest.raises(FileTooLargeError):
+        ingest_dataset(content, "file.csv", limits=IngestionLimits(max_file_bytes=len(content) - 1))
+    with pytest.raises(DatasetLimitError):
+        ingest_dataset(content, "rows.csv", limits=IngestionLimits(max_rows=0))
+    with pytest.raises(DatasetLimitError):
+        ingest_dataset(content, "columns.csv", limits=IngestionLimits(max_columns=0))
 
 
 def test_filename_is_metadata_not_a_path() -> None:
