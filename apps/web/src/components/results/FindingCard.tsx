@@ -8,38 +8,31 @@ export function FindingCard({
   columns,
   source,
   modelVersion,
+  compact = false,
 }: {
   finding: Finding;
   evidence: Evidence[];
   columns: ColumnProfile[];
   source: "Profiling" | "Quality" | "Governance";
   modelVersion: string;
+  compact?: boolean;
 }) {
   const subject =
     columns.find((column) => column.column_id === finding.subject)?.name ??
     finding.subject;
-
-  return (
-    <article
-      className={`finding severity-${finding.severity.toLowerCase()}`}
-      id={`finding-${finding.id}`}
-    >
-      <div className="finding-heading">
-        <div>
-          <p className="eyebrow">{label(finding.category)}</p>
-          <h4>{finding.title}</h4>
-        </div>
-        <span className={`severity-label ${finding.severity.toLowerCase()}`}>
-          Severity: {label(finding.severity)}
-        </span>
-      </div>
+  const detail = (
+    <>
       <p>{finding.description}</p>
-      <p className="finding-subject">
-        Affected field: <strong>{subject}</strong>
-      </p>
-      <p className="finding-meta">
-        {label(finding.assertion_level)} · {label(finding.confidence)} confidence
-      </p>
+      {!compact ? (
+        <>
+          <p className="finding-subject">
+            Affected field: <strong>{subject}</strong>
+          </p>
+          <p className="finding-meta">
+            {label(finding.assertion_level)} · {label(finding.confidence)} confidence
+          </p>
+        </>
+      ) : null}
       <EvidenceBox ids={finding.evidence_ids} evidence={evidence} />
       <details className="technical">
         <summary>Technical details</summary>
@@ -51,6 +44,37 @@ export function FindingCard({
           <div><dt>Category</dt><dd><code>{finding.category}</code></dd></div>
         </dl>
       </details>
+    </>
+  );
+
+  return (
+    <article
+      className={`finding severity-${finding.severity.toLowerCase()}${compact ? " compact-finding" : ""}`}
+      id={`finding-${finding.id}`}
+    >
+      <div className="finding-heading">
+        <div>
+          <p className="eyebrow">{label(finding.category)}</p>
+          <h4>{finding.title}</h4>
+        </div>
+        <span className={`severity-label ${finding.severity.toLowerCase()}`}>
+          Severity: {label(finding.severity)}
+        </span>
+      </div>
+      {compact ? (
+        <>
+          <p className="finding-compact-meta">
+            <span>Affected field: <strong>{subject}</strong></span>
+            <span>
+              {label(finding.assertion_level)} · {label(finding.confidence)} confidence
+            </span>
+          </p>
+          <details className="finding-review">
+            <summary>Review finding details</summary>
+            <div className="finding-review-content">{detail}</div>
+          </details>
+        </>
+      ) : detail}
     </article>
   );
 }
@@ -64,6 +88,9 @@ export function FindingsSection({
   modelVersion,
   subdued = false,
   collapsed = false,
+  compact = false,
+  description,
+  emptyMessage = "No findings were produced by the current V0.1 rules.",
 }: {
   title: string;
   findings: Finding[];
@@ -73,6 +100,9 @@ export function FindingsSection({
   modelVersion: string;
   subdued?: boolean;
   collapsed?: boolean;
+  compact?: boolean;
+  description?: string;
+  emptyMessage?: string;
 }) {
   const list = (
     <div className="finding-list">
@@ -84,18 +114,28 @@ export function FindingsSection({
           columns={columns}
           source={source}
           modelVersion={modelVersion}
+          compact={compact}
         />
       ))}
     </div>
   );
 
   return (
-    <section className={`findings-section${subdued ? " subdued" : ""}`}>
+    <section
+      className={`findings-section${subdued ? " subdued" : ""}${compact ? " compact-findings" : ""}`}
+    >
       <div className="findings-section-heading">
-        <h3>{title}</h3>
-        {collapsed ? (
+        {description ? (
+          <div>
+            <h3>{title}</h3>
+            <p>{description}</p>
+          </div>
+        ) : (
+          <h3>{title}</h3>
+        )}
+        {collapsed || compact ? (
           <span>
-            {findings.length.toLocaleString()} traceability finding
+            {findings.length.toLocaleString()} {collapsed ? "traceability " : ""}finding
             {findings.length === 1 ? "" : "s"}
           </span>
         ) : null}
@@ -108,9 +148,7 @@ export function FindingsSection({
           </details>
         ) : list
       ) : (
-        <p className="empty">
-          No findings were produced by the current V0.1 rules.
-        </p>
+        <p className="empty">{emptyMessage}</p>
       )}
     </section>
   );
