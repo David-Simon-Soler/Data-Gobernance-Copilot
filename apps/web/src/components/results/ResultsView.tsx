@@ -2,6 +2,7 @@
 
 import type { AnalysisResponse } from "../../types/api";
 import { ColumnInventory } from "./ColumnInventory";
+import { DatasetContextHeader } from "./DatasetContextHeader";
 import { GovernanceSection } from "./GovernanceSection";
 import { OverviewSection } from "./OverviewSection";
 import { QualitySection } from "./QualitySection";
@@ -25,17 +26,24 @@ export function ResultsView({
         Skip to analysis results
       </a>
       <header className="app-header">
-        <span>Data Governance Copilot</span>
-        <div className="result-reset">
-          {isSyntheticDemo ? <span>Ready to analyze your own file?</span> : null}
+        <div className="app-header-inner">
+          <strong>Data Governance Copilot</strong>
           <button onClick={onReset} className="button secondary">
             Analyze another dataset
           </button>
         </div>
       </header>
-      <ResultNavigation />
+      <DatasetContextHeader
+        response={response}
+        isSyntheticDemo={isSyntheticDemo}
+      />
+      <ResultNavigation
+        datasetName={response.metadata.source_filename}
+        sourceFormat={response.metadata.source_format}
+        overallScore={analysis.quality.overall_score}
+      />
       <main id="analysis-results" className="results" tabIndex={-1}>
-        <OverviewSection response={response} isSyntheticDemo={isSyntheticDemo} />
+        <OverviewSection response={response} />
 
         <QualitySection analysis={analysis} />
         <GovernanceSection analysis={analysis} />

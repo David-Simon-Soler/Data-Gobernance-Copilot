@@ -12,7 +12,17 @@ const LINKS = [
 
 type SectionId = (typeof LINKS)[number][0];
 
-export function ResultNavigation() {
+interface ResultNavigationProps {
+  datasetName: string;
+  sourceFormat: string;
+  overallScore: number | null;
+}
+
+export function ResultNavigation({
+  datasetName,
+  sourceFormat,
+  overallScore,
+}: ResultNavigationProps) {
   const [activeSection, setActiveSection] = useState<SectionId>("overview");
   const navigation = useRef<HTMLElement>(null);
 
@@ -65,17 +75,33 @@ export function ResultNavigation() {
   }, [activeSection]);
 
   return (
-    <nav ref={navigation} className="result-nav" aria-label="Result sections">
-      {LINKS.map(([id, title]) => (
-        <a
-          key={id}
-          href={`#${id}`}
-          aria-current={activeSection === id ? "location" : undefined}
-          onClick={() => setActiveSection(id)}
-        >
-          {title}
-        </a>
-      ))}
-    </nav>
+    <div className="analysis-nav-shell">
+      <div className="analysis-nav-inner">
+        <p className="compact-dataset-context" aria-label="Current dataset context">
+          <span className="compact-dataset-identity">
+            <strong title={datasetName}>{datasetName}</strong>
+            <span className="compact-separator" aria-hidden="true">·</span>
+            <span>{sourceFormat.toUpperCase()}</span>
+          </span>
+          <span className="compact-quality">
+            {overallScore == null
+              ? "N/A quality"
+              : overallScore + " / 100 quality"}
+          </span>
+        </p>
+        <nav ref={navigation} className="result-nav" aria-label="Result sections">
+          {LINKS.map(([id, title]) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              aria-current={activeSection === id ? "location" : undefined}
+              onClick={() => setActiveSection(id)}
+            >
+              {title}
+            </a>
+          ))}
+        </nav>
+      </div>
+    </div>
   );
 }

@@ -61,16 +61,24 @@ describe("V0.1 analysis flow", () => {
     render(<Home />);
     expect(screen.getByText("Data Governance Copilot")).toBeInTheDocument();
     expect(screen.getByText("Evidence-first dataset assessment")).toBeInTheDocument();
-    expect(screen.getByText(/deterministic profiling, structural data-quality assessment/i)).toBeInTheDocument();
+    expect(screen.getByText(/deterministic profiling, quality assessment/i)).toBeInTheDocument();
     expect(screen.getByText("Governance classification signals", { exact: false })).toBeInTheDocument();
-    expect(screen.getByText("Recommendations that trace to their source")).toBeInTheDocument();
+    const characteristics = screen.getByLabelText("Analysis characteristics");
+    expect(within(characteristics).getByText("Deterministic rules")).toBeInTheDocument();
+    expect(within(characteristics).getByText("Evidence-backed")).toBeInTheDocument();
+    expect(within(characteristics).getByText("Stateless analysis")).toBeInTheDocument();
   });
   it("renders supported formats, upload limit and factual processing boundaries", () => {
     render(<Home />);
-    expect(screen.getByText("CSV or XLSX · maximum file size 5 MiB")).toBeInTheDocument();
+    expect(screen.getByText("CSV / XLSX · maximum 5 MiB")).toBeInTheDocument();
+    const summary = screen.getByText("Processing & privacy details");
+    const disclosure = summary.closest("details");
+    expect(disclosure).not.toHaveAttribute("open");
     expect(screen.getByText(/does not persist uploaded datasets/i)).toBeInTheDocument();
     expect(screen.getByText(/raw rows are not returned/i)).toBeInTheDocument();
     expect(screen.getByText(/require human review and are not a legal or compliance determination/i)).toBeInTheDocument();
+    fireEvent.click(summary);
+    expect(disclosure).toHaveAttribute("open");
   });
   it("does not render prohibited privacy or compliance claims", () => {
     render(<Home />);
@@ -85,10 +93,38 @@ describe("V0.1 analysis flow", () => {
   it("rejects files over 5 MiB without calling API", () => { const fetch = vi.fn(); vi.stubGlobal("fetch", fetch); render(<Home />); choose("large.csv", 5 * 1024 * 1024 + 1); expect(screen.getByText("Files must be 5 MiB or smaller.")).toBeInTheDocument(); expect(fetch).not.toHaveBeenCalled(); });
   it("removes the selected file and returns to idle", () => { render(<Home />); choose("customers.csv"); fireEvent.click(screen.getByRole("button", { name: "Remove" })); expect(screen.getByRole("button", { name: "Analyze dataset" })).toBeDisabled(); expect(screen.queryByText("customers.csv")).not.toBeInTheDocument(); });
   it("keeps controls disabled while submitting", async () => { let resolve!: (r: Response) => void; vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(r => { resolve = r; }))); render(<Home />); choose("customers.csv"); submit(); expect(await screen.findByRole("status")).toHaveTextContent("Analyzing dataset…"); expect(screen.getByLabelText(/choose a csv/i)).toBeDisabled(); expect(screen.getByRole("button", { name: "Analyzing dataset…" })).toBeDisabled(); resolve(success()); });
-  it("renders overview and result navigation on success", async () => { vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success())); render(<Home />); choose("customers.csv"); submit(); expect(await screen.findByText("Analysis complete")).toBeInTheDocument(); expect(screen.getByText("sample.csv")).toBeInTheDocument(); expect(screen.getAllByText("3").length).toBeGreaterThan(0); for (const text of ["Overview", "Quality", "Governance", "Recommendations", "Columns"]) expect(screen.getByRole("link", { name: text })).toBeInTheDocument(); });
+  it("renders overview and result navigation on success", async () => {
+    await renderResult();
+    expect(screen.getByRole("heading", { name: "sample.csv", level: 1 })).toBeInTheDocument();
+    for (const text of ["Overview", "Quality", "Governance", "Recommendations", "Columns"]) {
+      expect(screen.getByRole("link", { name: text })).toBeInTheDocument();
+    }
+  });
   it("renders applicable numeric quality score", async () => { vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success())); render(<Home />); choose(); submit(); await screen.findByText("Analysis complete"); const quality = within(sectionByHeading("Quality")); expect(quality.getByText("82", { selector: ".quality-score strong" })).toBeInTheDocument(); expect(quality.getByText("/ 100")).toBeInTheDocument(); });
-  it("renders non-applicable quality as N/A, never zero", async () => { const value = { ...fixture, analysis: { ...fixture.analysis, quality: { ...fixture.analysis.quality, overall_score: null } } }; vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success(value))); render(<Home />); choose(); submit(); await screen.findByText("Analysis complete"); const overview = within(sectionByHeading("sample.csv")); expect(overview.getByText("N/A")).toBeInTheDocument(); expect(screen.queryByText("0 / 100")).not.toBeInTheDocument(); });
-  it("renders dataset identity and review counts in Overview", async () => {
+  it("renders non-applicable quality and completeness as N/A, never zero", async () => {
+    const value = {
+      ...fixture,
+      analysis: {
+        ...fixture.analysis,
+        quality: {
+          ...fixture.analysis.quality,
+          overall_score: null,
+          observed_completeness: null,
+        },
+      },
+    };
+    await renderResult(value);
+    expect(
+      within(screen.getByRole("group", { name: "Overall structural quality" }))
+        .getByText("N/A"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("group", { name: "Observed completeness" }))
+        .getByText("N/A"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("0 / 100")).not.toBeInTheDocument();
+  });
+  it("renders dataset identity and canonical metrics in the context header", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success()));
     render(<Home />);
     choose();
@@ -96,15 +132,31 @@ describe("V0.1 analysis flow", () => {
     const title = await screen.findByRole("heading", { name: "sample.csv", level: 1 });
     const overview = within(title.closest("section")!);
     expect(title).toHaveFocus();
-    expect(overview.getByText("CSV")).toBeInTheDocument();
+    expect(overview.getByText("CSV", { selector: ".format-badge" })).toBeInTheDocument();
     expect(overview.getByText("3 rows")).toBeInTheDocument();
     expect(overview.getByText("2 columns")).toBeInTheDocument();
-    expect(overview.getByText("Overall structural quality")).toBeInTheDocument();
-    expect(overview.getByText("Quality findings")).toBeInTheDocument();
-    expect(overview.getByText("Governance classifications")).toBeInTheDocument();
-    expect(overview.getByText("Recommendations")).toBeInTheDocument();
-    expect(overview.getAllByText("1")).toHaveLength(3);
+    const metrics = within(screen.getByRole("group", { name: "Review summary" }));
+    expect(
+      within(metrics.getByRole("group", { name: "Overall structural quality" }))
+        .getByText("82"),
+    ).toBeInTheDocument();
+    expect(
+      within(metrics.getByRole("group", { name: "Observed completeness" }))
+        .getByText("83.4%"),
+    ).toBeInTheDocument();
+    for (const metric of ["Quality findings", "Governance classifications", "Recommendations"]) {
+      expect(within(metrics.getByRole("group", { name: metric })).getByText("1"))
+        .toBeInTheDocument();
+    }
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+  it("keeps compact dataset context with the canonical navigation", async () => {
+    await renderResult();
+    const context = screen.getByLabelText("Current dataset context");
+    expect(within(context).getByText("sample.csv")).toBeInTheDocument();
+    expect(within(context).getByText("CSV")).toBeInTheDocument();
+    expect(within(context).getByText("82 / 100 quality")).toBeInTheDocument();
+    expect(screen.getAllByRole("navigation", { name: "Result sections" })).toHaveLength(1);
   });
   it("renders the selected XLSX sheet in Overview", async () => {
     const value = {
@@ -720,10 +772,11 @@ describe("Phase 9.4 synthetic demo", () => {
     render(<Home />);
     const uploadAction = screen.getByText("Choose a CSV or XLSX file");
     const demoAction = screen.getByRole("button", { name: "Try the sample dataset" });
+    const analyzeAction = screen.getByRole("button", { name: "Analyze dataset" });
     expect(uploadAction).toHaveClass("button");
     expect(demoAction).toHaveClass("button", "secondary");
-    expect(screen.getByText("Try the product with synthetic data")).toBeInTheDocument();
-    expect(screen.getByText(/same deterministic analysis used for uploaded CSV and XLSX files/)).toBeInTheDocument();
+    expect(analyzeAction).toHaveClass("button", "primary");
+    expect(screen.getByLabelText("Analysis characteristics")).toBeInTheDocument();
   });
 
   it("loads the bundled asset and submits its File through the normal API request", async () => {
@@ -772,7 +825,7 @@ describe("Phase 9.4 synthetic demo", () => {
       name: "customer-operations-sample.xlsx",
     })).toBeInTheDocument();
     expect(screen.getByText("Synthetic sample dataset")).toBeInTheDocument();
-    expect(screen.getByText("Ready to analyze your own file?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Analyze another dataset" })).toBeInTheDocument();
     for (const name of ["Quality", "Governance", "Recommendations", "Column inventory"]) {
       expect(screen.getByRole("heading", { name })).toBeInTheDocument();
     }
@@ -793,7 +846,7 @@ describe("Phase 9.4 synthetic demo", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try the sample dataset" }));
     await screen.findByText("Synthetic sample dataset");
     fireEvent.click(screen.getByRole("button", { name: "Analyze another dataset" }));
-    expect(screen.getByText("Try the product with synthetic data")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try the sample dataset" })).toBeInTheDocument();
     expect(screen.getByText("Choose a CSV or XLSX file")).toBeInTheDocument();
     expect(screen.queryByText("Synthetic sample dataset")).not.toBeInTheDocument();
   });

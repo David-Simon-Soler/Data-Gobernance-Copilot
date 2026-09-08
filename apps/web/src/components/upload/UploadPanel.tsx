@@ -59,9 +59,8 @@ export function UploadPanel({
       aria-labelledby="upload-title"
     >
       <div className="upload-heading">
-        <p className="eyebrow">Analyze a dataset</p>
         <h2 id="upload-title">Choose your source file</h2>
-        <p>CSV or XLSX · maximum file size 5 MiB</p>
+        <p>Upload one CSV or XLSX file for the current analysis.</p>
       </div>
 
       <div
@@ -81,10 +80,11 @@ export function UploadPanel({
           onChange={(event) => onSelect(event.target.files?.[0] || null)}
           disabled={submitting}
         />
-        <label htmlFor="file" className="button">Choose a CSV or XLSX file</label>
-        <p>Drag and drop here, or use the file picker.</p>
+        <p className="dropzone-title">Drop a CSV or XLSX here</p>
+        <p>or</p>
+        <label htmlFor="file" className="button file-picker">Choose a CSV or XLSX file</label>
         <span id="file-support" className="muted">
-          CSV and XLSX · maximum 5 MiB · no account required
+          CSV / XLSX · maximum 5 MiB
         </span>
       </div>
 
@@ -125,48 +125,48 @@ export function UploadPanel({
         </div>
       ) : null}
 
-      <div className="processing-note">
-        <strong>Processing boundaries</strong>
-        <ul>
-          <li>
-            V0.1 processes the dataset for the current analysis request and does
-            not persist uploaded datasets.
-          </li>
-          <li>Raw rows are not returned in the analysis response.</li>
-          <li>
-            Automated classifications require human review and are not a legal
-            or compliance determination.
-          </li>
-        </ul>
+      <div className="upload-actions">
+        <button className="button primary" disabled={!file || submitting}>
+          {submitting ? "Analyzing dataset…" : "Analyze dataset"}
+        </button>
+        <button
+          type="button"
+          className="button secondary"
+          onClick={onTryDemo}
+          disabled={submitting}
+        >
+          Try the sample dataset
+        </button>
       </div>
 
-      <button className="button primary" disabled={!file || submitting}>
-        {submitting ? "Analyzing dataset…" : "Analyze dataset"}
-      </button>
       {submitting ? (
         <p className="submit-status" role="status" aria-live="polite">
           Analyzing dataset…
         </p>
       ) : null}
 
-      <section className="demo-entry" aria-labelledby="demo-title">
+      <p className="trust-line" aria-label="Analysis characteristics">
+        <span>Deterministic rules</span>
+        <span>Evidence-backed</span>
+        <span>Stateless analysis</span>
+      </p>
+
+      <details className="processing-note">
+        <summary>Processing &amp; privacy details</summary>
         <div>
-          <p className="eyebrow">Synthetic sample · XLSX · Customer operations</p>
-          <h3 id="demo-title">Try the product with synthetic data</h3>
-          <p>
-            Run the bundled customer-operations sample through the same
-            deterministic analysis used for uploaded CSV and XLSX files.
-          </p>
+          <ul>
+            <li>
+              V0.1 processes the dataset for the current analysis request and
+              does not persist uploaded datasets.
+            </li>
+            <li>Raw rows are not returned in the analysis response.</li>
+            <li>
+              Automated classifications require human review and are not a
+              legal or compliance determination.
+            </li>
+          </ul>
         </div>
-        <button
-          type="button"
-          className="button secondary demo-button"
-          onClick={onTryDemo}
-          disabled={submitting}
-        >
-          Try the sample dataset
-        </button>
-      </section>
+      </details>
     </form>
   );
 }

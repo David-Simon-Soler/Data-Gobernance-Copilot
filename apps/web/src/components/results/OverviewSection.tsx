@@ -1,6 +1,4 @@
-"use client";
-
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { label } from "../../lib/format";
 import type { AnalysisResponse, Severity } from "../../types/api";
 
@@ -12,18 +10,11 @@ const ATTENTION_SEVERITIES: Exclude<Severity, "INFO">[] = [
 
 export function OverviewSection({
   response,
-  isSyntheticDemo,
 }: {
   response: AnalysisResponse;
-  isSyntheticDemo: boolean;
 }) {
-  const title = useRef<HTMLHeadingElement>(null);
   const { metadata, analysis, schema_version: schemaVersion } = response;
   const { profiling, quality, governance, recommendations } = analysis;
-
-  useEffect(() => {
-    title.current?.focus();
-  }, []);
 
   const attentionCounts = useMemo(() => {
     const findings = [
@@ -40,54 +31,7 @@ export function OverviewSection({
 
   return (
     <section id="overview" className="overview" aria-labelledby="overview-title">
-      <div className="overview-heading">
-        <div>
-          <p className="eyebrow status-label">Analysis complete</p>
-          {isSyntheticDemo ? (
-            <p className="synthetic-result-label">Synthetic sample dataset</p>
-          ) : null}
-          <h1
-            ref={title}
-            id="overview-title"
-            tabIndex={-1}
-            title={metadata.source_filename}
-          >
-            {metadata.source_filename}
-          </h1>
-          <p className="dataset-context">
-            <span>{metadata.source_format.toUpperCase()}</span>
-            {metadata.sheet_name ? <span>Sheet: {metadata.sheet_name}</span> : null}
-            <span>{metadata.row_count.toLocaleString()} rows</span>
-            <span>{metadata.column_count.toLocaleString()} columns</span>
-          </p>
-        </div>
-        <div className="quality-summary" role="group" aria-label="Overall structural quality">
-          <span>Overall structural quality</span>
-          <div className="overview-score">
-            <strong>{quality.overall_score ?? "N/A"}</strong>
-            {quality.overall_score == null ? (
-              <span>Not applicable</span>
-            ) : (
-              <span>/ 100</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="review-summary" role="group" aria-label="Review summary">
-        <div>
-          <strong>{quality.findings.length.toLocaleString()}</strong>
-          <span>Quality findings</span>
-        </div>
-        <div>
-          <strong>{governance.classifications.length.toLocaleString()}</strong>
-          <span>Governance classifications</span>
-        </div>
-        <div>
-          <strong>{recommendations.summary.total_count.toLocaleString()}</strong>
-          <span>Recommendations</span>
-        </div>
-      </div>
+      <h2 id="overview-title" className="visually-hidden">Overview</h2>
 
       <div className="attention-summary">
         {attentionCounts.length ? (

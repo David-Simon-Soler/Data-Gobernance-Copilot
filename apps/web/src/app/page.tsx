@@ -87,38 +87,36 @@ export default function Home() {
   }
 
   return (
-    <main className="shell entry-shell">
-      <header className="entry-brand" role="group" aria-label="Product identity">
-        <strong>Data Governance Copilot</strong>
-        <span>V0.1</span>
-      </header>
-      <section className="entry-grid" aria-labelledby="entry-title">
-        <div className="entry-copy">
-          <p className="eyebrow">Evidence-first dataset assessment</p>
-          <h1 id="entry-title">
-            Understand the quality and governance signals in your dataset.
-          </h1>
-          <p className="lede">
-            Upload a dataset for deterministic profiling, structural data-quality
-            assessment, governance classification signals and traceable
-            recommendations.
-          </p>
-          <ul className="capability-list" aria-label="Analysis capabilities">
-            <li>Deterministic, versioned rules</li>
-            <li>Evidence linked to every finding</li>
-            <li>Recommendations that trace to their source</li>
-          </ul>
+    <>
+      <header className="global-header">
+        <div className="global-header-inner" role="group" aria-label="Product identity">
+          <strong>Data Governance Copilot</strong>
+          <span>v0.1</span>
         </div>
-        <UploadPanel
-          file={file}
-          error={error}
-          focusError={focusError}
-          submitting={state === "SUBMITTING"}
-          onSelect={select}
-          onSubmit={submit}
-          onTryDemo={() => void tryDemo()}
-        />
-      </section>
-    </main>
+      </header>
+      <main className="shell entry-shell">
+        <section className="entry-content" aria-labelledby="entry-title">
+          <header className="entry-copy">
+            <p className="eyebrow">Evidence-first dataset assessment</p>
+            <h1 id="entry-title">
+              Understand the quality and governance signals in your dataset.
+            </h1>
+            <p className="lede">
+              Deterministic profiling, quality assessment and governance
+              classification signals backed by traceable evidence.
+            </p>
+          </header>
+          <UploadPanel
+            file={file}
+            error={error}
+            focusError={focusError}
+            submitting={state === "SUBMITTING"}
+            onSelect={select}
+            onSubmit={submit}
+            onTryDemo={() => void tryDemo()}
+          />
+        </section>
+      </main>
+    </>
   );
 }
