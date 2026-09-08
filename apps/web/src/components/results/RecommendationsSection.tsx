@@ -1,5 +1,12 @@
+"use client";
+
 import { label } from "../../lib/format";
-import type { AnalysisResponse, Evidence, Finding, Recommendation } from "../../types/api";
+import type {
+  AnalysisResponse,
+  Evidence,
+  Finding,
+  Recommendation,
+} from "../../types/api";
 import { EvidenceContent } from "./EvidenceBox";
 
 interface RecommendationGroup {
@@ -40,6 +47,34 @@ function groupRecommendations(items: Recommendation[]) {
   return [...groups.values()];
 }
 
+function findingSubject(
+  finding: Finding | undefined,
+  columnNames: ReadonlyMap<string, string>,
+) {
+  if (!finding) return null;
+  return columnNames.get(finding.subject) ?? finding.subject;
+}
+
+function affectedFields(
+  group: RecommendationGroup,
+  findingsById: ReadonlyMap<string, Finding>,
+  columnNames: ReadonlyMap<string, string>,
+) {
+  const fields: string[] = [];
+  const seen = new Set<string>();
+  for (const recommendation of group.recommendations) {
+    const subject = findingSubject(
+      findingsById.get(recommendation.finding_id),
+      columnNames,
+    );
+    if (subject && !seen.has(subject)) {
+      seen.add(subject);
+      fields.push(subject);
+    }
+  }
+  return fields;
+}
+
 function SourceRelationship({
   recommendation,
   finding,
@@ -53,13 +88,16 @@ function SourceRelationship({
 }) {
   if (!finding) {
     return (
-      <div className="recommendation-source">
-        <p className="muted">Source finding details unavailable.</p>
+      <li className="recommendation-source-row">
+        <div>
+          <strong>Source unavailable</strong>
+          <span>Finding details are unavailable.</span>
+        </div>
         <code>{recommendation.finding_id}</code>
-      </div>
+      </li>
     );
   }
-  const subject = columnNames.get(finding.subject) ?? finding.subject;
+  const subject = findingSubject(finding, columnNames) ?? finding.subject;
 
   const revealSourceFinding = () => {
     const source = document.getElementById(`finding-${finding.id}`);
@@ -70,19 +108,22 @@ function SourceRelationship({
   };
 
   return (
-    <div className="recommendation-source">
+    <li className="recommendation-source-row">
+      <div className="recommendation-source-identity">
+        <strong>{subject}</strong>
+        <span>{finding.title}</span>
+      </div>
       <a href={`#finding-${finding.id}`} onClick={revealSourceFinding}>
         View source finding for {subject}
       </a>
-      <details className="evidence recommendation-evidence">
-        <summary>Why this recommendation?</summary>
-        <div className="detail">
-          <strong>{finding.title}</strong>
+      <details className="recommendation-source-evidence">
+        <summary>Review evidence for {subject}</summary>
+        <div className="recommendation-source-evidence-content">
           <p>{finding.description}</p>
           <EvidenceContent ids={finding.evidence_ids} evidence={evidence} />
         </div>
       </details>
-    </div>
+    </li>
   );
 }
 
@@ -92,8 +133,16 @@ export function RecommendationsSection({
   analysis: AnalysisResponse["analysis"];
 }) {
   const { profiling, quality, governance, recommendations } = analysis;
-  const findings = [...profiling.findings, ...quality.findings, ...governance.findings];
-  const evidence = [...profiling.evidence, ...quality.evidence, ...governance.evidence];
+  const findings = [
+    ...profiling.findings,
+    ...quality.findings,
+    ...governance.findings,
+  ];
+  const evidence = [
+    ...profiling.evidence,
+    ...quality.evidence,
+    ...governance.evidence,
+  ];
   const findingsById = new Map(findings.map((finding) => [finding.id, finding]));
   const columnNames = new Map(
     profiling.columns.map((column) => [column.column_id, column.name]),
@@ -108,58 +157,102 @@ export function RecommendationsSection({
           <h2 id="recommendations-title">Recommendations</h2>
         </div>
         <p className="section-intro">
-          {recommendations.summary.total_count.toLocaleString()} canonical
-          recommendation{recommendations.summary.total_count === 1 ? "" : "s"},
-          each linked to the finding and evidence that produced it.
+          Deterministic suggestions linked to the source findings and evidence
+          that produced them. Priority communicates action order, not severity
+          or risk.
         </p>
+      </div>
+
+      <div className="recommendation-summary" aria-label="Recommendation summary">
+        <p>
+          <strong>{recommendations.summary.total_count.toLocaleString()}</strong>
+          <span>
+            suggested action
+            {recommendations.summary.total_count === 1 ? "" : "s"}
+          </span>
+        </p>
+        {recommendations.summary.counts_by_priority.length ? (
+          <dl aria-label="Canonical recommendation counts by priority">
+            {recommendations.summary.counts_by_priority.map(([priority, count]) => (
+              <div key={priority}>
+                <dt>{priority}</dt>
+                <dd>{count.toLocaleString()}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
       </div>
 
       {groups.length ? (
         <div className="recommendation-list">
-          {groups.map((group) => (
-            <article className="recommendation-group" key={group.key}>
-              <div className="recommendation-heading">
-                <div>
-                  <p className="recommendation-source-label">
-                    {label(group.source)} · {label(group.category)}
-                  </p>
-                  <h3>{group.action}</h3>
-                </div>
-                <span className={`priority-label ${group.priority.toLowerCase()}`}>
-                  Priority {group.priority}
-                </span>
-              </div>
-              <p>{group.rationale}</p>
-              <p className="canonical-count">
-                {group.recommendations.length.toLocaleString()} canonical source
-                relationship{group.recommendations.length === 1 ? "" : "s"}
-              </p>
-              <div className="recommendation-sources">
-                {group.recommendations.map((recommendation) => (
-                  <SourceRelationship
-                    key={recommendation.id}
-                    recommendation={recommendation}
-                    finding={findingsById.get(recommendation.finding_id)}
-                    evidence={evidence}
-                    columnNames={columnNames}
-                  />
-                ))}
-              </div>
-              <details className="technical">
-                <summary>Technical details</summary>
-                <div className="technical-records">
-                  {group.recommendations.map((recommendation) => (
-                    <dl className="technical-grid" key={recommendation.id}>
-                      <div><dt>Recommendation ID</dt><dd><code>{recommendation.id}</code></dd></div>
-                      <div><dt>Finding ID</dt><dd><code>{recommendation.finding_id}</code></dd></div>
-                      <div><dt>Rule</dt><dd><code>{recommendation.rule_id}</code></dd></div>
-                      <div><dt>Model</dt><dd><code>{recommendation.model_version}</code></dd></div>
-                    </dl>
-                  ))}
-                </div>
-              </details>
-            </article>
-          ))}
+          {groups.map((group) => {
+            const fields = affectedFields(group, findingsById, columnNames);
+            return (
+              <article
+                className={`recommendation-group priority-${group.priority.toLowerCase()}`}
+                key={group.key}
+              >
+                <header className="recommendation-action-heading">
+                  <span className={`priority-label ${group.priority.toLowerCase()}`}>
+                    {group.priority}
+                  </span>
+                  <div>
+                    <h3>{group.action}</h3>
+                    {fields.length ? (
+                      <p className="recommendation-fields">
+                        <span>Fields</span>
+                        <span>{fields.join(" · ")}</span>
+                      </p>
+                    ) : null}
+                  </div>
+                </header>
+                <p className="recommendation-rationale">{group.rationale}</p>
+                <p className="recommendation-source-summary">
+                  {label(group.source)} · {group.recommendations.length.toLocaleString()} source
+                  {" "}finding{group.recommendations.length === 1 ? "" : "s"}
+                </p>
+                <details className="recommendation-traceability">
+                  <summary aria-label="Evidence and source findings">
+                    Evidence &amp; sources
+                  </summary>
+                  <div className="recommendation-traceability-content">
+                    <div className="recommendation-traceability-heading">
+                      <h4>Source findings</h4>
+                      <span>
+                        {group.recommendations.length.toLocaleString()} canonical source
+                        {" "}relationship{group.recommendations.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    <ul className="recommendation-sources">
+                      {group.recommendations.map((recommendation) => (
+                        <SourceRelationship
+                          key={recommendation.id}
+                          recommendation={recommendation}
+                          finding={findingsById.get(recommendation.finding_id)}
+                          evidence={evidence}
+                          columnNames={columnNames}
+                        />
+                      ))}
+                    </ul>
+                    <details className="technical recommendation-technical">
+                      <summary>Technical details</summary>
+                      <div className="technical-records">
+                        {group.recommendations.map((recommendation) => (
+                          <dl className="technical-grid" key={recommendation.id}>
+                            <div><dt>Recommendation ID</dt><dd><code>{recommendation.id}</code></dd></div>
+                            <div><dt>Finding ID</dt><dd><code>{recommendation.finding_id}</code></dd></div>
+                            <div><dt>Rule</dt><dd><code>{recommendation.rule_id}</code></dd></div>
+                            <div><dt>Model</dt><dd><code>{recommendation.model_version}</code></dd></div>
+                            <div><dt>Category</dt><dd><code>{recommendation.category}</code></dd></div>
+                          </dl>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
+                </details>
+              </article>
+            );
+          })}
         </div>
       ) : (
         <p className="empty">

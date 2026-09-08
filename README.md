@@ -128,7 +128,7 @@ The application is local-first and self-hostable; uploaded data is sent from the
 
 ## Project status
 
-Phases 0-9 and release preparation through Phase 10.3 are complete. The security and repository audit follows in Phase 10.4. Major product features remain deferred. See the [Roadmap](docs/ROADMAP.md).
+Phases 0-9 and release preparation through Phase 10.4 are complete. Phase 10.5 visual refinement is in final validation. Major product features remain deferred. See the [Roadmap](docs/ROADMAP.md).
 
 ## Documentation
 

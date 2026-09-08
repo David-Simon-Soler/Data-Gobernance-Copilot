@@ -84,7 +84,17 @@ test("synthetic demo crosses the real pipeline and preserves traceability", asyn
   });
   await expect(disclosure).not.toHaveAttribute("open", "");
 
-  const sourceLink = page.getByRole("link", {
+  const recommendationTraceability = page
+    .locator("details.recommendation-traceability")
+    .filter({
+      has: page.locator(
+        'a[href="#finding-F-GOV-col:2-POTENTIAL_PERSONAL_DATA"]',
+      ),
+    });
+  await recommendationTraceability
+    .getByText("Evidence & sources", { exact: true })
+    .click();
+  const sourceLink = recommendationTraceability.getByRole("link", {
     name: "View source finding for email",
     exact: true,
   });

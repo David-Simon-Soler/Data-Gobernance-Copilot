@@ -4,7 +4,7 @@
 
 La instalación se validó desde un archivo limpio de `HEAD`, sin reutilizar `.venv` ni `node_modules` del working tree.
 
-- Backend: Python 3.12.14 y 3.13.15; pip 25.0.1 y 26.2.1 respectivamente; uvicorn 0.52.4; httpx2 2.12.0; pytest 8.4.2. El paquete distinto `httpx` no forma parte del entorno declarado.
+- Backend: Python 3.12.14 y 3.13.15; pip 25.0.1 y 26.2.1 respectivamente; uvicorn 0.52.4; httpx2 2.12.0; pytest 9.1.1. El paquete distinto `httpx` no forma parte del entorno declarado.
 - Frontend: Node.js 24.19.0, npm 11.17.0, Next.js 15.5.25, React 19.2.8, Vitest 3.2.6, Vite 6.4.3, esbuild 0.25.12 y PostCSS 8.5.28.
 - Python 3.11 y Node.js 22 LTS no estaban instalados en el entorno de validación; el proyecto declara Python `>=3.11`, pero esta ejecución no afirma haber probado esas dos versiones concretas.
 

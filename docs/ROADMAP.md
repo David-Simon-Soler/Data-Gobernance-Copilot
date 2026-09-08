@@ -19,8 +19,8 @@
 - **Phase 10.1 - Reproducibility and local run:** complete.
 - **Phase 10.2 - Critical-path E2E and smoke:** complete; five Chromium tests use a real FastAPI backend and production Next.js.
 - **Phase 10.3 - Public README and documentation closure:** complete and validated.
-- **Phase 10.4 - Security and repository audit:** next.
-- **Phase 10.5 - Release decision:** pending.
+- **Phase 10.4 - Security and repository audit:** complete and validated.
+- **Phase 10.5 - Visual refinement and release-candidate preparation:** in final validation.
 
 ## Deferred beyond V0.1
 

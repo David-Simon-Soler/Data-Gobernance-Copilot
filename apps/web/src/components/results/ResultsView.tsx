@@ -19,6 +19,25 @@ export function ResultsView({
   onReset: () => void;
 }) {
   const { analysis } = response;
+  const columnFindings = [
+    ...analysis.profiling.findings.map((finding) => ({
+      source: "Profiling" as const,
+      finding,
+    })),
+    ...analysis.quality.findings.map((finding) => ({
+      source: "Quality" as const,
+      finding,
+    })),
+    ...analysis.governance.findings.map((finding) => ({
+      source: "Governance" as const,
+      finding,
+    })),
+  ];
+  const columnEvidence = [
+    ...analysis.profiling.evidence,
+    ...analysis.quality.evidence,
+    ...analysis.governance.evidence,
+  ];
 
   return (
     <>
@@ -50,10 +69,22 @@ export function ResultsView({
         <RecommendationsSection analysis={analysis} />
 
         <section id="columns" aria-labelledby="columns-title">
-          <h2 id="columns-title">Column inventory</h2>
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Dataset schema</p>
+              <h2 id="columns-title">Column inventory</h2>
+            </div>
+            <p className="section-intro">
+              {analysis.profiling.columns.length.toLocaleString()} canonical
+              {" "}column{analysis.profiling.columns.length === 1 ? "" : "s"},
+              with structural metrics and joined Governance classifications.
+            </p>
+          </div>
           <ColumnInventory
             columns={analysis.profiling.columns}
             governanceClassifications={analysis.governance.classifications}
+            relatedFindings={columnFindings}
+            evidence={columnEvidence}
           />
         </section>
       </main>

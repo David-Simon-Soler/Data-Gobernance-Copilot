@@ -53,7 +53,7 @@ const rowByName = (name: string) => {
   return row;
 };
 
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("V0.1 analysis flow", () => {
   it("renders upload and disables Analyze initially", () => { render(<Home />); expect(screen.getByText(/understand the quality/i)).toBeInTheDocument(); expect(screen.getByRole("button", { name: "Analyze dataset" })).toBeDisabled(); });
@@ -248,7 +248,21 @@ describe("V0.1 analysis flow", () => {
   it("renders exact empty finding wording", async () => { const value = { ...fixture, analysis: { ...fixture.analysis, profiling: { ...fixture.analysis.profiling, findings: [] }, quality: { ...fixture.analysis.quality, findings: [] }, governance: { ...fixture.analysis.governance, findings: [], classifications: [] } } }; vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success(value))); render(<Home />); choose(); submit(); await screen.findByText("Analysis complete"); expect(screen.getAllByText("No findings were produced by the current V0.1 rules.").length).toBeGreaterThan(0); });
   it("renders quality and governance findings with semantics", async () => { await renderResult(); const qualityFindings = within(sectionByHeading("Quality findings")); const governanceFindings = within(sectionByHeading("Governance findings & evidence")); expect(qualityFindings.getByRole("heading", { name: "Missing values" })).toBeInTheDocument(); expect(qualityFindings.getByText("Severity: Warning")).toBeInTheDocument(); expect(qualityFindings.getByText(/Detected · High confidence/)).toBeInTheDocument(); expect(governanceFindings.getByRole("heading", { name: "Potential contact field" })).toBeInTheDocument(); expect(governanceFindings.getByText("Severity: Info")).toBeInTheDocument(); expect(governanceFindings.getByText(/Inferred · Medium confidence/)).toBeInTheDocument(); });
   it("opens contextual evidence disclosure", async () => { await renderResult(); const finding = within(articleByHeading("Missing values")); const review = finding.getByText("Review finding details"); expect(review.closest("details")).not.toHaveAttribute("open"); fireEvent.click(review); const disclosure = finding.getByText("Why this was flagged"); const details = disclosure.closest("details"); expect(details).not.toHaveAttribute("open"); fireEvent.click(disclosure); expect(details).toHaveTextContent("Null Ratio33.3%"); expect(details).toHaveTextContent("3 assessed"); expect(finding.getByText("Q-1")).toBeInTheDocument(); });
-  it("renders recommendations and finding traceability", async () => { await renderResult(); const recommendation = within(articleByHeading("Review email handling")); expect(recommendation.getByText("Priority P1")).toBeInTheDocument(); expect(recommendation.getByText("A governance signal warrants review.")).toBeInTheDocument(); fireEvent.click(recommendation.getByText("Why this recommendation?")); expect(recommendation.getByText("Potential contact field")).toBeInTheDocument(); expect(recommendation.getByText("G-1")).toBeInTheDocument(); });
+  it("renders recommendations and finding traceability", async () => {
+    await renderResult();
+    const recommendation = within(articleByHeading("Review email handling"));
+    expect(recommendation.getByText("P1")).toBeInTheDocument();
+    const actionHeader = recommendation.getByRole("heading", { name: "Review email handling" }).closest("header")!;
+    expect(within(actionHeader).getByText("Fields", { exact: true })).toBeInTheDocument();
+    expect(within(actionHeader).getByText("email")).toBeInTheDocument();
+    expect(recommendation.getByText("A governance signal warrants review.")).toBeInTheDocument();
+    const traceability = recommendation.getByText("Evidence & sources").closest("details")!;
+    expect(traceability).not.toHaveAttribute("open");
+    fireEvent.click(recommendation.getByText("Evidence & sources"));
+    expect(recommendation.getByText("Potential contact field")).toBeInTheDocument();
+    fireEvent.click(recommendation.getByText("Review evidence for email"));
+    expect(recommendation.getByText("G-1")).toBeInTheDocument();
+  });
   it("filters columns by name", async () => { vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success())); render(<Home />); choose(); submit(); await screen.findByText("Analysis complete"); const columns = within(sectionByHeading("Column inventory")); fireEvent.change(columns.getByPlaceholderText("Column name"), { target: { value: "email" } }); const table = within(columns.getByRole("table")); expect(table.getByRole("rowheader", { name: "email" })).toBeInTheDocument(); expect(table.queryByRole("rowheader", { name: "customer_id" })).not.toBeInTheDocument(); });
   it("joins canonical governance classifications without fake column data", async () => { await renderResult(); const columns = within(sectionByHeading("Column inventory")); expect(fixture.analysis.profiling.columns.every((column) => column.classifications.length === 0)).toBe(true); expect(columns.getByLabelText("Classification")).toHaveValue("all"); expect(within(rowByName("email")).getByText("Potential Personal Data")).toBeInTheDocument(); expect(within(rowByName("customer_id")).queryByLabelText(/Governance classifications/)).not.toBeInTheDocument(); });
   it("maps API and network failures safely", async () => { vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("secret stack trace"))); render(<Home />); choose(); submit(); expect(await screen.findByText("We couldn't reach the analysis service.")).toBeInTheDocument(); expect(screen.queryByText("secret stack trace")).not.toBeInTheDocument(); });
@@ -332,7 +346,7 @@ describe("Phase 9.2 analytical result semantics", () => {
       },
     };
     await renderResult(value);
-    const classified = within(sectionByHeading("Classified fields"));
+    const classified = within(sectionByHeading("All classifications"));
     expect(classified.getAllByRole("heading", { name: "email" })).toHaveLength(1);
     expect(classified.getByText("Potential Personal Data")).toBeInTheDocument();
     expect(classified.getByText("Contact Information")).toBeInTheDocument();
@@ -341,7 +355,7 @@ describe("Phase 9.2 analytical result semantics", () => {
   it("renders the governance summary and cautious disclaimer without a score", async () => {
     await renderResult();
     const governance = within(sectionByHeading("Governance"));
-    expect(governance.getByText("Potential personal data")).toBeInTheDocument();
+    expect(governance.getByText("Potential personal-data fields")).toBeInTheDocument();
     expect(governance.getByText(/not legal determinations and do not certify regulatory compliance/)).toBeInTheDocument();
     expect(governance.queryByText(/governance score|risk score|compliance score/i)).not.toBeInTheDocument();
   });
@@ -364,7 +378,9 @@ describe("Phase 9.2 analytical result semantics", () => {
 
   it("links a recommendation to its exact canonical source finding", async () => {
     await renderResult();
-    const link = within(articleByHeading("Review email handling")).getByRole("link", {
+    const recommendation = within(articleByHeading("Review email handling"));
+    fireEvent.click(recommendation.getByText("Evidence & sources"));
+    const link = recommendation.getByRole("link", {
       name: "View source finding for email",
     });
     expect(link).toHaveAttribute("href", "#finding-gf1");
@@ -395,11 +411,11 @@ describe("Phase 9.2 analytical result semantics", () => {
     await renderResult(value);
     expect(within(articleByHeading("Missing values")).getByText(/Affected field:/))
       .toHaveTextContent("email");
-    expect(
-      within(articleByHeading("Review email handling")).getByRole("link", {
-        name: "View source finding for email",
-      }),
-    ).toHaveAttribute("href", "#finding-gf1");
+    const recommendation = within(articleByHeading("Review email handling"));
+    fireEvent.click(recommendation.getByText("Evidence & sources"));
+    expect(recommendation.getByRole("link", {
+      name: "View source finding for email",
+    })).toHaveAttribute("href", "#finding-gf1");
     expect(screen.queryByText(/Affected field: c2/)).not.toBeInTheDocument();
   });
 
@@ -444,6 +460,8 @@ describe("Phase 9.2 analytical result semantics", () => {
     await renderResult(value);
     const recommendations = within(sectionByHeading("Recommendations"));
     expect(recommendations.getAllByRole("heading", { name: "Review email handling" })).toHaveLength(1);
+    expect(recommendations.getByText("email · phone")).toBeInTheDocument();
+    fireEvent.click(recommendations.getByText("Evidence & sources"));
     expect(recommendations.getByText("2 canonical source relationships")).toBeInTheDocument();
     expect(recommendations.getByRole("link", { name: "View source finding for email" })).toHaveAttribute("href", "#finding-gf1");
     expect(recommendations.getByRole("link", { name: "View source finding for phone" })).toHaveAttribute("href", "#finding-gf2");
@@ -452,7 +470,11 @@ describe("Phase 9.2 analytical result semantics", () => {
   it("keeps the canonical recommendation total visible after grouping", async () => {
     await renderResult();
     const recommendations = within(sectionByHeading("Recommendations"));
-    expect(recommendations.getByText(/1 canonical recommendation,/)).toBeInTheDocument();
+    const summary = within(screen.getByLabelText("Recommendation summary"));
+    const total = summary.getByText("suggested action", { exact: true }).closest("p")!;
+    expect(within(total).getByText("1", { exact: true })).toBeInTheDocument();
+    expect(summary.getByText("P1", { exact: true })).toBeInTheDocument();
+    fireEvent.click(recommendations.getByText("Evidence & sources"));
     expect(recommendations.getByText("1 canonical source relationship")).toBeInTheDocument();
   });
 
@@ -695,8 +717,10 @@ describe("Phase 9.2b visual density", () => {
     const findings = within(sectionByHeading("Governance findings & evidence"));
     const disclosure = findings.getByText("Review all findings").closest("details")!;
     expect(disclosure).not.toHaveAttribute("open");
+    const recommendation = within(articleByHeading("Review email handling"));
+    fireEvent.click(recommendation.getByText("Evidence & sources"));
     fireEvent.click(
-      within(articleByHeading("Review email handling")).getByRole("link", {
+      recommendation.getByRole("link", {
         name: "View source finding for email",
       }),
     );
@@ -704,15 +728,14 @@ describe("Phase 9.2b visual density", () => {
     expect(document.querySelector("#finding-gf1")).toBeInTheDocument();
   });
 
-  it("keeps potential-personal-data as one primary fact with complete categories secondary", async () => {
+  it("keeps potential-personal-data as one primary fact with a compact category overview", async () => {
     await renderResult();
     const summary = within(screen.getByLabelText("Governance summary"));
-    const primaryLabel = summary.getByText("Potential personal data", { exact: true });
-    expect(primaryLabel.closest("dl")).toHaveClass("governance-primary-summary");
-    const breakdown = summary.getByText("Complete category counts").closest("details")!;
-    expect(breakdown).not.toHaveAttribute("open");
-    expect(within(breakdown).getByText("Potential Personal Data")).toBeInTheDocument();
-    expect(within(breakdown).getByText("1")).toBeInTheDocument();
+    const primaryLabel = summary.getByText("Potential personal-data fields", { exact: true });
+    expect(primaryLabel.closest("dl")).toHaveClass("governance-metrics");
+    const overview = within(sectionByHeading("Classification overview"));
+    expect(overview.getByText("Potential Personal Data")).toBeInTheDocument();
+    expect(overview.getByText("1 field")).toBeInTheDocument();
   });
 
   it("removes repeated applicable-score copy from primary dimension presentation", async () => {
@@ -723,6 +746,186 @@ describe("Phase 9.2b visual density", () => {
     expect(quality.getByText("82 / 100")).toBeInTheDocument();
     expect(quality.getByRole("heading", { name: "Validity" })).toBeInTheDocument();
     expect(quality.getByText("100 / 100")).toBeInTheDocument();
+  });
+});
+
+describe("Phase 10.5.4 Governance redesign", () => {
+  it("shows canonical classified-field and potential-personal-data metrics", async () => {
+    await renderResult();
+    const summary = within(screen.getByLabelText("Governance summary"));
+    const classified = summary.getByText("Classified fields").closest("div")!;
+    const potential = summary.getByText("Potential personal-data fields").closest("div")!;
+    expect(within(classified).getByText("1")).toBeInTheDocument();
+    expect(within(potential).getByText("1")).toBeInTheDocument();
+  });
+
+  it("uses only actual Potential Personal Data classifications in first-pass review", async () => {
+    const contactOnly = {
+      ...fixture.analysis.governance.classifications[0],
+      id: "gc-contact",
+      column_id: "c1",
+      category: "CONTACT_INFORMATION",
+    };
+    const value: AnalysisResponse = {
+      ...fixture,
+      analysis: {
+        ...fixture.analysis,
+        governance: {
+          ...fixture.analysis.governance,
+          classifications: [
+            contactOnly,
+            ...fixture.analysis.governance.classifications,
+          ],
+          summary: {
+            ...fixture.analysis.governance.summary,
+            classified_column_count: 2,
+          },
+        },
+      },
+    };
+    await renderResult(value);
+    const review = within(sectionByHeading("Fields requiring review"));
+    expect(review.getByText("email", { selector: ".governance-review-field" })).toBeInTheDocument();
+    expect(review.queryByText("customer_id", { selector: ".governance-review-field" })).not.toBeInTheDocument();
+    expect(review.getByText("Potential Personal Data")).toBeInTheDocument();
+    expect(review.getByText("Medium confidence")).toBeInTheDocument();
+    const reviewLink = review.getByRole("link", { name: "Review email" });
+    expect(reviewLink).toHaveAttribute("href", "#governance-field-c2");
+    expect(reviewLink).toHaveTextContent(/^Review$/);
+  });
+
+  it("uses a factual review empty state when no Potential Personal Data classification exists", async () => {
+    const contactOnly = {
+      ...fixture.analysis.governance.classifications[0],
+      id: "gc-contact",
+      category: "CONTACT_INFORMATION",
+    };
+    const value: AnalysisResponse = {
+      ...fixture,
+      analysis: {
+        ...fixture.analysis,
+        governance: {
+          ...fixture.analysis.governance,
+          classifications: [contactOnly],
+          summary: {
+            ...fixture.analysis.governance.summary,
+            columns_with_potential_personal_data: [],
+            category_counts: [["CONTACT_INFORMATION", 1]],
+          },
+        },
+      },
+    };
+    await renderResult(value);
+    const review = within(sectionByHeading("Fields requiring review"));
+    expect(review.getByText(
+      "No fields were classified as Potential Personal Data by the current V0.1 governance rules.",
+    )).toBeInTheDocument();
+    expect(review.queryByText(/No personal data found/i)).not.toBeInTheDocument();
+  });
+
+  it("derives present category counts from classifications in deterministic label order", async () => {
+    const contact = {
+      ...fixture.analysis.governance.classifications[0],
+      id: "gc-contact",
+      category: "CONTACT_INFORMATION",
+    };
+    const identifier = {
+      ...fixture.analysis.governance.classifications[0],
+      id: "gc-identifier",
+      column_id: "c1",
+      category: "IDENTIFIER",
+    };
+    const duplicatePotentialCategory = {
+      ...fixture.analysis.governance.classifications[0],
+      id: "gc-potential-duplicate",
+    };
+    const value: AnalysisResponse = {
+      ...fixture,
+      analysis: {
+        ...fixture.analysis,
+        governance: {
+          ...fixture.analysis.governance,
+          classifications: [
+            ...fixture.analysis.governance.classifications,
+            identifier,
+            contact,
+            duplicatePotentialCategory,
+          ],
+        },
+      },
+    };
+    await renderResult(value);
+    const overview = within(sectionByHeading("Classification overview"));
+    expect(overview.getAllByRole("term").map((term) => term.textContent)).toEqual([
+      "Contact Information",
+      "Identifier",
+      "Potential Personal Data",
+    ]);
+    expect(overview.getAllByText("1 field")).toHaveLength(3);
+  });
+
+  it("groups every canonical classification once under its field", async () => {
+    const contact = {
+      ...fixture.analysis.governance.classifications[0],
+      id: "gc-contact",
+      category: "CONTACT_INFORMATION",
+    };
+    const identifier = {
+      ...fixture.analysis.governance.classifications[0],
+      id: "gc-identifier",
+      column_id: "c1",
+      category: "IDENTIFIER",
+    };
+    const value: AnalysisResponse = {
+      ...fixture,
+      analysis: {
+        ...fixture.analysis,
+        governance: {
+          ...fixture.analysis.governance,
+          classifications: [contact, identifier, ...fixture.analysis.governance.classifications],
+        },
+      },
+    };
+    await renderResult(value);
+    const all = within(sectionByHeading("All classifications"));
+    expect(all.getByText("3 classifications across 2 fields")).toBeInTheDocument();
+    expect(all.getAllByRole("heading", { name: "email" })).toHaveLength(1);
+    expect(all.getAllByRole("heading", { name: "customer_id" })).toHaveLength(1);
+    const email = within(all.getByRole("list", { name: "Classifications for email" }));
+    expect(email.getByText("Contact Information").closest("li")).toBeInTheDocument();
+    expect(email.getByText("Potential Personal Data").closest("li")).toBeInTheDocument();
+    const customer = within(all.getByRole("list", { name: "Classifications for customer_id" }));
+    expect(customer.getByText("Identifier").closest("li")).toBeInTheDocument();
+  });
+
+  it("preserves exact assertion, confidence, evidence and technical classification data", async () => {
+    await renderResult();
+    const all = within(sectionByHeading("All classifications"));
+    const classificationItem = all
+      .getByText("Potential Personal Data", {
+        selector: ".governance-classification strong",
+      })
+      .closest("li");
+    if (!classificationItem) throw new Error("Classification item not found");
+    const classification = within(classificationItem);
+    expect(classification.getByText("Inferred · Medium confidence")).toBeInTheDocument();
+    fireEvent.click(classification.getByText("Review classification details"));
+    const evidence = classification.getByText("Classification evidence").closest("details")!;
+    fireEvent.click(within(evidence).getByText("Classification evidence"));
+    expect(within(evidence).getByText("Name Signal")).toBeInTheDocument();
+    expect(within(evidence).getByText("email")).toBeInTheDocument();
+    const technical = classification.getByText("Technical details").closest("details")!;
+    fireEvent.click(within(technical).getByText("Technical details"));
+    expect(within(technical).getByText("gc1")).toBeInTheDocument();
+    expect(within(technical).getByText("Yes")).toBeInTheDocument();
+  });
+
+  it("keeps the review action anchored to the complete field group", async () => {
+    await renderResult();
+    const review = within(sectionByHeading("Fields requiring review"));
+    expect(review.getByRole("link", { name: "Review email" }))
+      .toHaveAttribute("href", "#governance-field-c2");
+    expect(document.querySelector("#governance-field-c2")).toBeInTheDocument();
   });
 });
 
@@ -820,17 +1023,115 @@ describe("Phase 9.3 column inventory", () => {
     render(
       <ColumnInventory columns={[column]} governanceClassifications={[]} />,
     );
-    const row = within(rowByName("customer_id"));
-    const disclosure = row.getByLabelText("View details for customer_id");
-    expect(disclosure.closest("details")).not.toHaveAttribute("open");
-    fireEvent.click(disclosure);
-    expect(row.getByText("Zero-based position")).toBeInTheDocument();
-    expect(row.getByText("Safe aggregate statistics")).toBeInTheDocument();
-    expect(row.getByText("Candidate identifier evidence")).toBeInTheDocument();
-    expect(row.getByText("Safe quality signals")).toBeInTheDocument();
-    expect(row.queryByText("SECRET_RAW_VALUE")).not.toBeInTheDocument();
-    expect(row.queryByText("SECRET_SAMPLE")).not.toBeInTheDocument();
-    expect(row.queryByText("99")).not.toBeInTheDocument();
+    const trigger = within(rowByName("customer_id")).getByRole("button", {
+      name: "Inspect customer_id",
+    });
+    fireEvent.click(trigger);
+    const panel = within(screen.getByRole("dialog", { name: "customer_id" }));
+    expect(panel.getByRole("button", { name: "Close details for customer_id" })).toHaveFocus();
+    fireEvent.click(panel.getByText("Technical details"));
+    expect(panel.getByText("Zero-based position")).toBeInTheDocument();
+    expect(panel.getByText("Safe aggregate statistics")).toBeInTheDocument();
+    expect(panel.getByText("Candidate identifier evidence")).toBeInTheDocument();
+    expect(panel.getByText("Safe quality signals")).toBeInTheDocument();
+    expect(panel.queryByText("SECRET_RAW_VALUE")).not.toBeInTheDocument();
+    expect(panel.queryByText("SECRET_SAMPLE")).not.toBeInTheDocument();
+    expect(panel.queryByText("99")).not.toBeInTheDocument();
+  });
+});
+
+
+describe("Phase 10.5.5 recommendations and columns", () => {
+  it("presents the canonical recommendation total and only returned priority buckets", async () => {
+    await renderResult();
+    const summary = within(screen.getByLabelText("Recommendation summary"));
+    const total = summary.getByText("suggested action", { exact: true }).closest("p")!;
+    expect(within(total).getByText("1", { exact: true })).toBeInTheDocument();
+    const priorities = within(summary.getByLabelText("Canonical recommendation counts by priority"));
+    expect(priorities.getByText("P1", { exact: true })).toBeInTheDocument();
+    expect(priorities.queryByText("P0", { exact: true })).not.toBeInTheDocument();
+    expect(priorities.queryByText("P2", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("keeps action context primary and canonical source details behind one disclosure", async () => {
+    await renderResult();
+    const recommendation = within(articleByHeading("Review email handling"));
+    const actionHeader = recommendation.getByRole("heading", { name: "Review email handling" }).closest("header")!;
+    expect(within(actionHeader).getByText("Fields", { exact: true })).toBeInTheDocument();
+    expect(within(actionHeader).getByText("email", { exact: true })).toBeInTheDocument();
+    expect(recommendation.getByText("A governance signal warrants review.")).toBeInTheDocument();
+    expect(recommendation.getByText("Governance · 1 source finding")).toBeInTheDocument();
+    const summary = recommendation.getByText("Evidence & sources");
+    const disclosure = summary.closest("details")!;
+    expect(disclosure).not.toHaveAttribute("open");
+    fireEvent.click(summary);
+    expect(recommendation.getByRole("link", { name: "View source finding for email" }))
+      .toHaveAttribute("href", "#finding-gf1");
+    expect(recommendation.getByText("Technical details")).toBeInTheDocument();
+  });
+
+  it("shows compact canonical column metrics and a dedicated inspection control", () => {
+    render(
+      <ColumnInventory
+        columns={fixture.analysis.profiling.columns}
+        governanceClassifications={fixture.analysis.governance.classifications}
+      />,
+    );
+    const email = within(rowByName("email"));
+    expect(email.getByText("String")).toBeInTheDocument();
+    expect(email.getByText("66.7%")).toBeInTheDocument();
+    expect(email.getByText("2 distinct")).toBeInTheDocument();
+    expect(email.getByText("100% unique")).toBeInTheDocument();
+    expect(email.getByText("Potential Personal Data")).toBeInTheDocument();
+    expect(email.getByRole("button", { name: "Inspect email" })).toHaveAttribute(
+      "aria-haspopup",
+      "dialog",
+    );
+    expect(within(rowByName("customer_id")).getByText("Candidate")).toBeInTheDocument();
+  });
+
+  it("joins existing classifications, findings, and evidence in column detail", async () => {
+    await renderResult();
+    fireEvent.click(within(rowByName("email")).getByRole("button", { name: "Inspect email" }));
+    const panelElement = screen.getByRole("dialog", { name: "email" });
+    const panel = within(panelElement);
+    expect(panel.getByRole("button", { name: "Close details for email" })).toHaveFocus();
+    expect(panel.getByText("Complete").parentElement).toHaveTextContent("66.7%");
+    expect(panel.getByText("Missing").parentElement).toHaveTextContent("1 · 33.3%");
+    const classifications = panel.getByRole("heading", { name: "Classifications" }).closest("section")!;
+    expect(within(classifications).getByText("1 canonical classification")).toBeInTheDocument();
+    expect(within(classifications).getByText("Inferred · Medium confidence")).toBeInTheDocument();
+    fireEvent.click(within(classifications).getByText("Classification evidence"));
+    expect(within(classifications).getByText("Name Signal")).toBeInTheDocument();
+    expect(within(classifications).getByText("G-1")).toBeInTheDocument();
+    const findings = panel.getByRole("heading", { name: "Findings" }).closest("section")!;
+    expect(within(findings).getByText("2 related findings")).toBeInTheDocument();
+    expect(within(findings).getByText("Missing values")).toBeInTheDocument();
+    expect(within(findings).getByText("Potential contact field")).toBeInTheDocument();
+  });
+
+  it("closes column detail with Escape and returns focus to its trigger", () => {
+    render(
+      <ColumnInventory
+        columns={fixture.analysis.profiling.columns}
+        governanceClassifications={fixture.analysis.governance.classifications}
+      />,
+    );
+    const trigger = within(rowByName("customer_id")).getByRole("button", {
+      name: "Inspect customer_id",
+    });
+    fireEvent.click(trigger);
+    const panel = within(screen.getByRole("dialog", { name: "customer_id" }));
+    const close = panel.getByRole("button", { name: "Close details for customer_id" });
+    const lastControl = panel.getByText("Technical details");
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(lastControl).toHaveFocus();
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "customer_id" })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 });
 
