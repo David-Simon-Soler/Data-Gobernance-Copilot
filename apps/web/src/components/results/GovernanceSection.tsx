@@ -1,4 +1,7 @@
-import { label } from "../../lib/format";
+"use client";
+
+import { useLanguage } from "../../i18n/LanguageProvider";
+import { countText } from "../../i18n/translations";
 import type { AnalysisResponse, GovernanceClassification } from "../../types/api";
 import { EvidenceBox } from "./EvidenceBox";
 import { FindingsSection } from "./FindingCard";
@@ -22,7 +25,10 @@ function groupByColumn(
   );
 }
 
-function countCategories(classifications: GovernanceClassification[]) {
+function countCategories(
+  classifications: GovernanceClassification[],
+  labeler: (value: string) => string,
+) {
   const fieldsByCategory = new Map<string, Set<string>>();
   for (const classification of classifications) {
     const fields =
@@ -32,17 +38,16 @@ function countCategories(classifications: GovernanceClassification[]) {
   }
   return [...fieldsByCategory.entries()]
     .map(([category, fields]) => [category, fields.size] as const)
-    .sort(([left], [right]) => label(left).localeCompare(label(right)));
+    .sort(([left], [right]) => labeler(left).localeCompare(labeler(right)));
 }
-
-const fieldCount = (count: number) =>
-  `${count.toLocaleString()} field${count === 1 ? "" : "s"}`;
 
 export function GovernanceSection({
   analysis,
 }: {
   analysis: AnalysisResponse["analysis"];
 }) {
+  const { locale, messages, label, number } = useLanguage();
+  const fieldCount = (count: number) => countText(count, messages.fieldNoun, locale);
   const { profiling, governance } = analysis;
   const names = new Map(
     profiling.columns.map((column) => [column.column_id, column.name]),
@@ -56,30 +61,29 @@ export function GovernanceSection({
       (classification) => classification.category === POTENTIAL_PERSONAL_DATA,
     ),
   );
-  const categoryCounts = countCategories(governance.classifications);
+  const categoryCounts = countCategories(governance.classifications, label);
 
   return (
     <section id="governance" aria-labelledby="governance-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Governance signals</p>
-          <h2 id="governance-title">Governance</h2>
+          <p className="eyebrow">{messages.governanceSignals}</p>
+          <h2 id="governance-title">{messages.governance}</h2>
         </div>
         <p className="section-intro">
-          Automated classifications identify fields for human review. They are
-          not legal determinations and do not certify regulatory compliance.
+          {messages.governanceIntro}
         </p>
       </div>
 
-      <dl className="governance-metrics" aria-label="Governance summary">
+      <dl className="governance-metrics" aria-label={messages.governanceSummary}>
         <div>
-          <dt>Classified fields</dt>
-          <dd>{governance.summary.classified_column_count.toLocaleString()}</dd>
+          <dt>{messages.classifiedFields}</dt>
+          <dd>{number(governance.summary.classified_column_count)}</dd>
         </div>
         <div>
-          <dt>Potential personal-data fields</dt>
+          <dt>{messages.potentialPersonalFields}</dt>
           <dd>
-            {governance.summary.columns_with_potential_personal_data.length.toLocaleString()}
+            {number(governance.summary.columns_with_potential_personal_data.length)}
           </dd>
         </div>
       </dl>
@@ -90,21 +94,20 @@ export function GovernanceSection({
       >
         <div className="governance-subheading">
           <div>
-            <p className="eyebrow">First-pass review</p>
-            <h3 id="governance-review-title">Fields requiring review</h3>
+            <p className="eyebrow">{messages.firstPassReview}</p>
+            <h3 id="governance-review-title">{messages.fieldsRequiringReview}</h3>
           </div>
           <p>
-            Fields classified as Potential Personal Data by the current V0.1
-            rules. Classification does not confirm personal data.
+            {messages.reviewFieldsIntro}
           </p>
         </div>
         {reviewGroups.length ? (
           <div className="governance-review-table">
             <div className="governance-review-columns" aria-hidden="true">
-              <span>Field</span>
-              <span>Classifications</span>
-              <span>Confidence</span>
-              <span>Review</span>
+              <span>{messages.field}</span>
+              <span>{messages.classifications}</span>
+              <span>{messages.confidence}</span>
+              <span>{messages.review}</span>
             </div>
             <ul className="governance-review-list">
               {reviewGroups.map(([columnId, classifications]) => {
@@ -118,7 +121,7 @@ export function GovernanceSection({
                     <strong className="governance-review-field">{fieldName}</strong>
                     <span
                       className="governance-review-categories"
-                      aria-label={`Classifications for ${fieldName}`}
+                      aria-label={`${messages.classificationsFor} ${fieldName}`}
                     >
                       {classifications.map((classification) =>
                         label(classification.category),
@@ -126,14 +129,14 @@ export function GovernanceSection({
                     </span>
                     <span className="governance-review-confidence">
                       {reviewClassification
-                        ? `${label(reviewClassification.confidence)} confidence`
+                        ? `${label(reviewClassification.confidence)} ${messages.confidenceLower}`
                         : "—"}
                     </span>
                     <a
                       href={`#governance-field-${columnId}`}
-                      aria-label={`Review ${fieldName}`}
+                      aria-label={`${messages.reviewField} ${fieldName}`}
                     >
-                      Review
+                      {messages.review}
                     </a>
                   </li>
                 );
@@ -142,8 +145,7 @@ export function GovernanceSection({
           </div>
         ) : (
           <p className="empty">
-            No fields were classified as Potential Personal Data by the current
-            V0.1 governance rules.
+            {messages.noPersonalFields}
           </p>
         )}
       </section>
@@ -154,10 +156,10 @@ export function GovernanceSection({
       >
         <div className="governance-subheading">
           <div>
-            <p className="eyebrow">Canonical categories</p>
-            <h3 id="classification-overview-title">Classification overview</h3>
+            <p className="eyebrow">{messages.canonicalCategories}</p>
+            <h3 id="classification-overview-title">{messages.classificationOverview}</h3>
           </div>
-          <p>Counts reflect classifications present in this assessment.</p>
+          <p>{messages.classificationCounts}</p>
         </div>
         {categoryCounts.length ? (
           <dl className="governance-category-grid">
@@ -170,7 +172,7 @@ export function GovernanceSection({
           </dl>
         ) : (
           <p className="empty">
-            No governance classifications were produced by the current V0.1 rules.
+            {messages.noGovernanceClassifications}
           </p>
         )}
       </section>
@@ -181,12 +183,11 @@ export function GovernanceSection({
       >
         <div className="governance-subheading">
           <div>
-            <p className="eyebrow">Field-level evidence</p>
-            <h3 id="all-classifications-title">All classifications</h3>
+            <p className="eyebrow">{messages.fieldLevelEvidence}</p>
+            <h3 id="all-classifications-title">{messages.allClassifications}</h3>
           </div>
           <p>
-            {governance.classifications.length.toLocaleString()} classification
-            {governance.classifications.length === 1 ? "" : "s"} across {fieldCount(groups.length)}
+            {countText(governance.classifications.length, messages.classificationNoun, locale)} {messages.across} {fieldCount(groups.length)}
           </p>
         </div>
         {groups.length ? (
@@ -202,11 +203,10 @@ export function GovernanceSection({
                   <header>
                     <h4>{fieldName}</h4>
                     <span>
-                      {classifications.length.toLocaleString()} classification
-                      {classifications.length === 1 ? "" : "s"}
+                      {countText(classifications.length, messages.classificationNoun, locale)}
                     </span>
                   </header>
-                  <ul aria-label={`Classifications for ${fieldName}`}>
+                  <ul aria-label={`${messages.classificationsFor} ${fieldName}`}>
                     {classifications.map((classification) => {
                       const classificationLabel = label(classification.category);
                       const isPotentialPersonalData =
@@ -224,31 +224,31 @@ export function GovernanceSection({
                           <div className="governance-classification-meaning">
                             <strong>{classificationLabel}</strong>
                             <span>
-                              {label(classification.assertion_level)} · {label(classification.confidence)} confidence
+                              {label(classification.assertion_level)} · {label(classification.confidence)} {messages.confidenceLower}
                             </span>
                           </div>
                           <details className="governance-classification-details">
-                            <summary>Review classification details</summary>
+                            <summary>{messages.reviewClassification}</summary>
                             <div className="governance-classification-detail-content">
                               <EvidenceBox
                                 ids={classification.evidence_ids}
                                 evidence={governance.evidence}
-                                summary="Classification evidence"
+                                summary={messages.classificationEvidence}
                               />
                               <details className="technical">
-                                <summary>Technical details</summary>
+                                <summary>{messages.technicalDetails}</summary>
                                 <dl className="technical-grid">
-                                  <div><dt>Classification ID</dt><dd><code>{classification.id}</code></dd></div>
-                                  <div><dt>Method</dt><dd>{classification.method}</dd></div>
-                                  <div><dt>Rule version</dt><dd><code>{classification.rule_version}</code></dd></div>
-                                  <div><dt>Deterministic</dt><dd>{classification.deterministic ? "Yes" : "No"}</dd></div>
-                                  <div><dt>Column ID</dt><dd><code>{classification.column_id}</code></dd></div>
+                                  <div><dt>{messages.classificationId}</dt><dd><code>{classification.id}</code></dd></div>
+                                  <div><dt>{messages.method}</dt><dd>{classification.method}</dd></div>
+                                  <div><dt>{messages.ruleVersion}</dt><dd><code>{classification.rule_version}</code></dd></div>
+                                  <div><dt>{messages.deterministic}</dt><dd>{classification.deterministic ? messages.yes : messages.no}</dd></div>
+                                  <div><dt>{messages.columnId}</dt><dd><code>{classification.column_id}</code></dd></div>
                                 </dl>
                                 {classification.signals.length ? (
                                   <ul className="signal-list">
                                     {classification.signals.map((signal) => (
                                       <li key={signal.id}>
-                                        {label(signal.signal_type)} · strength {signal.strength} · rule {signal.rule_id}
+                                        {label(signal.signal_type)} · {messages.strength} {signal.strength} · {messages.rule.toLowerCase()} {signal.rule_id}
                                       </li>
                                     ))}
                                   </ul>
@@ -266,13 +266,13 @@ export function GovernanceSection({
           </div>
         ) : (
           <p className="empty">
-            No governance classifications were produced by the current V0.1 rules.
+            {messages.noGovernanceClassifications}
           </p>
         )}
       </section>
 
       <FindingsSection
-        title="Governance findings & evidence"
+        title={messages.governanceFindingsEvidence}
         findings={governance.findings}
         evidence={governance.evidence}
         columns={profiling.columns}

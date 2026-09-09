@@ -1,4 +1,7 @@
-import { evidenceValue, label } from "../../lib/format";
+"use client";
+
+import { useLanguage } from "../../i18n/LanguageProvider";
+import { evidenceValue } from "../../lib/format";
 import type { Evidence } from "../../types/api";
 
 function matchingEvidence(ids: string[], evidence: Evidence[]) {
@@ -13,10 +16,11 @@ export function EvidenceContent({
   ids: string[];
   evidence: Evidence[];
 }) {
+  const { messages, label, number } = useLanguage();
   const items = matchingEvidence(ids, evidence);
 
   if (!items.length) {
-    return <p className="muted">Evidence details are unavailable.</p>;
+    return <p className="muted">{messages.evidenceUnavailable}</p>;
   }
 
   return (
@@ -30,32 +34,32 @@ export function EvidenceContent({
           {item.affected_rows != null || item.denominator != null ? (
             <p className="muted">
               {item.affected_rows != null
-                ? `${item.affected_rows.toLocaleString()} affected rows`
+                ? `${number(item.affected_rows)} ${messages.affectedRows}`
                 : null}
               {item.affected_rows != null && item.denominator != null
                 ? " · "
                 : null}
               {item.denominator != null
-                ? `${item.denominator.toLocaleString()} assessed`
+                ? `${number(item.denominator)} ${messages.assessed}`
                 : null}
             </p>
           ) : null}
           <dl className="technical-grid">
             <div>
-              <dt>Evidence ID</dt>
+              <dt>{messages.evidenceId}</dt>
               <dd><code>{item.id}</code></dd>
             </div>
             <div>
-              <dt>Rule</dt>
+              <dt>{messages.rule}</dt>
               <dd><code>{item.rule_id}</code></dd>
             </div>
             <div>
-              <dt>Rule version</dt>
+              <dt>{messages.ruleVersion}</dt>
               <dd><code>{item.rule_version}</code></dd>
             </div>
             {item.sample_policy ? (
               <div>
-                <dt>Sample policy</dt>
+                <dt>{messages.samplePolicy}</dt>
                 <dd>{item.sample_policy}</dd>
               </div>
             ) : null}
@@ -79,15 +83,16 @@ export function EvidenceContent({
 export function EvidenceBox({
   ids,
   evidence,
-  summary = "Why this was flagged",
+  summary,
 }: {
   ids: string[];
   evidence: Evidence[];
   summary?: string;
 }) {
+  const { messages } = useLanguage();
   return (
     <details className="evidence">
-      <summary>{summary}</summary>
+      <summary>{summary ?? messages.whyFlagged}</summary>
       <div className="detail">
         <EvidenceContent ids={ids} evidence={evidence} />
       </div>

@@ -1529,6 +1529,48 @@ tbody th {
   font-size: 0.82rem;
 }
 
+.global-header-actions,
+.app-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.language-switcher {
+  display: inline-flex;
+  min-height: 30px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-subtle);
+}
+
+.language-option {
+  min-width: 34px;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: 700 0.68rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+
+.language-option[aria-pressed="true"] {
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgb(23 32 29 / 12%);
+  color: var(--primary);
+}
+
+.language-option:hover,
+.language-option:focus-visible {
+  color: var(--primary);
+}
+
 .entry-shell {
   width: min(100% - 48px, 920px);
   min-height: calc(100svh - 61px);
@@ -1973,7 +2015,13 @@ tbody th {
   }
 
   .app-header-inner {
-    gap: 12px;
+    min-height: 60px;
+    padding-block: 8px;
+    gap: 10px 12px;
+  }
+
+  .app-header-actions {
+    gap: 6px;
   }
 
   .app-header .button {

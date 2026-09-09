@@ -1,25 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useLanguage } from "../../i18n/LanguageProvider";
+import { apiErrorText } from "../../i18n/translations";
 import { size } from "../../lib/format";
-import { validateFile } from "../../lib/validation";
-
-const API_ERROR_MESSAGES: Record<string, string> = {
-  network_error: "We couldn't reach the analysis service.",
-  request_too_large: "The upload request is too large. Choose a smaller file.",
-  invalid_request: "The upload request was invalid. Choose the file again.",
-  sheet_not_applicable: "Sheet selection is only available for XLSX files.",
-  file_too_large: "This file exceeds the 5 MiB limit.",
-  unsupported_format: "Upload a CSV or XLSX file.",
-  empty_dataset: "The dataset contains no analyzable rows.",
-  malformed_dataset: "The uploaded dataset could not be processed.",
-  dataset_limit: "The dataset exceeds a supported structural limit.",
-  dataset_limit_exceeded: "The dataset exceeds a supported structural limit.",
-  sheet_not_found: "The default workbook sheet could not be read.",
-  demo_asset_unavailable:
-    "The synthetic sample could not be loaded. Try again or choose your own dataset.",
-  internal_error: "The analysis service returned a safe error.",
-};
 
 interface UploadPanelProps {
   file: File | null;
@@ -40,12 +24,10 @@ export function UploadPanel({
   onSubmit,
   onTryDemo,
 }: UploadPanelProps) {
+  const { locale, messages } = useLanguage();
   const input = useRef<HTMLInputElement>(null);
   const errorHeading = useRef<HTMLHeadingElement>(null);
-  const message =
-    error && (focusError || !validateFile(file))
-      ? API_ERROR_MESSAGES[error] || "The analysis service returned a safe error."
-      : error;
+  const message = error ? apiErrorText(error, locale) : null;
 
   useEffect(() => {
     if (focusError && message) errorHeading.current?.focus();
@@ -59,8 +41,8 @@ export function UploadPanel({
       aria-labelledby="upload-title"
     >
       <div className="upload-heading">
-        <h2 id="upload-title">Choose your source file</h2>
-        <p>Upload one CSV or XLSX file for the current analysis.</p>
+        <h2 id="upload-title">{messages.chooseSource}</h2>
+        <p>{messages.uploadIntro}</p>
       </div>
 
       <div
@@ -80,11 +62,11 @@ export function UploadPanel({
           onChange={(event) => onSelect(event.target.files?.[0] || null)}
           disabled={submitting}
         />
-        <p className="dropzone-title">Drop a CSV or XLSX here</p>
-        <p>or</p>
-        <label htmlFor="file" className="button file-picker">Choose a CSV or XLSX file</label>
+        <p className="dropzone-title">{messages.dropFile}</p>
+        <p>{messages.or}</p>
+        <label htmlFor="file" className="button file-picker">{messages.chooseFile}</label>
         <span id="file-support" className="muted">
-          CSV / XLSX · maximum 5 MiB
+          {messages.fileSupport}
         </span>
       </div>
 
@@ -101,7 +83,7 @@ export function UploadPanel({
               onClick={() => input.current?.click()}
               disabled={submitting}
             >
-              Replace
+              {messages.replace}
             </button>
             <button
               type="button"
@@ -109,7 +91,7 @@ export function UploadPanel({
               onClick={() => onSelect(null)}
               disabled={submitting}
             >
-              Remove
+              {messages.remove}
             </button>
           </div>
         </div>
@@ -117,17 +99,17 @@ export function UploadPanel({
 
       {message ? (
         <div className="error" role="alert">
-          <h3 ref={errorHeading} tabIndex={-1}>Check this file</h3>
+          <h3 ref={errorHeading} tabIndex={-1}>{messages.checkFile}</h3>
           <p>{message}</p>
           <button type="button" className="text-button" onClick={() => input.current?.click()}>
-            Replace file
+            {messages.replaceFile}
           </button>
         </div>
       ) : null}
 
       <div className="upload-actions">
         <button className="button primary" disabled={!file || submitting}>
-          {submitting ? "Analyzing dataset…" : "Analyze dataset"}
+          {submitting ? messages.analyzingDataset : messages.analyzeDataset}
         </button>
         <button
           type="button"
@@ -135,34 +117,32 @@ export function UploadPanel({
           onClick={onTryDemo}
           disabled={submitting}
         >
-          Try the sample dataset
+          {messages.trySample}
         </button>
       </div>
 
       {submitting ? (
         <p className="submit-status" role="status" aria-live="polite">
-          Analyzing dataset…
+          {messages.analyzingDataset}
         </p>
       ) : null}
 
-      <p className="trust-line" aria-label="Analysis characteristics">
-        <span>Deterministic rules</span>
-        <span>Evidence-backed</span>
-        <span>Stateless analysis</span>
+      <p className="trust-line" aria-label={messages.analysisCharacteristics}>
+        <span>{messages.deterministicRules}</span>
+        <span>{messages.evidenceBacked}</span>
+        <span>{messages.statelessAnalysis}</span>
       </p>
 
       <details className="processing-note">
-        <summary>Processing &amp; privacy details</summary>
+        <summary>{messages.processingPrivacy}</summary>
         <div>
           <ul>
             <li>
-              V0.1 processes the dataset for the current analysis request and
-              does not persist uploaded datasets.
+              {messages.privacyRequest}
             </li>
-            <li>Raw rows are not returned in the analysis response.</li>
+            <li>{messages.privacyRows}</li>
             <li>
-              Automated classifications require human review and are not a
-              legal or compliance determination.
+              {messages.privacyReview}
             </li>
           </ul>
         </div>

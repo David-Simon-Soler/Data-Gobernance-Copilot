@@ -8,7 +8,9 @@ import {
   useState,
 } from "react";
 import type { RefObject } from "react";
-import { label, pct } from "../../lib/format";
+import { useLanguage } from "../../i18n/LanguageProvider";
+import { countText, findingText, interpolate } from "../../i18n/translations";
+import { pct } from "../../lib/format";
 import type {
   ColumnProfile,
   Evidence,
@@ -26,9 +28,10 @@ const EMPTY_FINDINGS: RelatedFinding[] = [];
 const EMPTY_EVIDENCE: Evidence[] = [];
 
 function DetailValue({ value }: { value: number | string | boolean | null }) {
+  const { messages, number } = useLanguage();
   if (value == null) return <>—</>;
-  if (typeof value === "boolean") return <>{value ? "Yes" : "No"}</>;
-  return <>{typeof value === "number" ? value.toLocaleString() : value}</>;
+  if (typeof value === "boolean") return <>{value ? messages.yes : messages.no}</>;
+  return <>{typeof value === "number" ? number(value) : value}</>;
 }
 
 function ColumnDetailPanel({
@@ -48,6 +51,7 @@ function ColumnDetailPanel({
   panelRef: RefObject<HTMLElement | null>;
   onClose: () => void;
 }) {
+  const { locale, messages, label, number } = useLanguage();
   const statistics = Object.entries(column.basic_statistics ?? {}).filter(
     ([, value]) => value != null,
   );
@@ -65,7 +69,7 @@ function ColumnDetailPanel({
       >
         <header className="column-detail-header">
           <div>
-            <p className="eyebrow">Column detail</p>
+            <p className="eyebrow">{messages.columnDetail}</p>
             <h3 id="column-detail-title">{column.name}</h3>
             <p>{label(column.inferred_primitive_type)} · <code>{column.physical_dtype}</code></p>
           </div>
@@ -74,46 +78,45 @@ function ColumnDetailPanel({
             type="button"
             className="text-button"
             onClick={onClose}
-            aria-label={`Close details for ${column.name}`}
+            aria-label={`${messages.closeDetails} ${column.name}`}
           >
-            Close
+            {messages.close}
           </button>
         </header>
 
         <div className="column-detail-body">
           <section aria-labelledby="column-profile-title">
             <div className="column-detail-section-heading">
-              <h4 id="column-profile-title">Profile</h4>
-              <span>Canonical column metrics</span>
+              <h4 id="column-profile-title">{messages.profile}</h4>
+              <span>{messages.canonicalMetrics}</span>
             </div>
             <dl className="column-profile-grid">
-              <div><dt>Complete</dt><dd>{pct(1 - column.null_ratio)}</dd></div>
+              <div><dt>{messages.complete}</dt><dd>{pct(1 - column.null_ratio)}</dd></div>
               <div>
-                <dt>Missing</dt>
-                <dd>{column.null_count.toLocaleString()} · {pct(column.null_ratio)}</dd>
+                <dt>{messages.missing}</dt>
+                <dd>{number(column.null_count)} · {pct(column.null_ratio)}</dd>
               </div>
-              <div><dt>Distinct</dt><dd>{column.distinct_count.toLocaleString()}</dd></div>
+              <div><dt>{messages.distinct}</dt><dd>{number(column.distinct_count)}</dd></div>
               {column.uniqueness_ratio != null ? (
-                <div><dt>Unique rate</dt><dd>{pct(column.uniqueness_ratio)}</dd></div>
+                <div><dt>{messages.uniqueRate}</dt><dd>{pct(column.uniqueness_ratio)}</dd></div>
               ) : null}
               <div>
-                <dt>Identifier</dt>
-                <dd>{column.is_candidate_identifier ? "Structural candidate" : "None"}</dd>
+                <dt>{messages.identifier}</dt>
+                <dd>{column.is_candidate_identifier ? messages.structuralCandidate : messages.none}</dd>
               </div>
             </dl>
             {column.is_candidate_identifier ? (
               <p className="column-candidate-note">
-                Structural candidate only; not a confirmed primary key or semantic identifier.
+                {messages.candidateNote}
               </p>
             ) : null}
           </section>
 
           <section aria-labelledby="column-classifications-title">
             <div className="column-detail-section-heading">
-              <h4 id="column-classifications-title">Classifications</h4>
+              <h4 id="column-classifications-title">{messages.classifications}</h4>
               <span>
-                {classifications.length.toLocaleString()} canonical classification
-                {classifications.length === 1 ? "" : "s"}
+                {countText(classifications.length, messages.canonicalClassificationNoun, locale)}
               </span>
             </div>
             {classifications.length ? (
@@ -129,21 +132,21 @@ function ColumnDetailPanel({
                   >
                     <strong>{label(classification.category)}</strong>
                     <span>
-                      {label(classification.assertion_level)} · {label(classification.confidence)} confidence
+                      {label(classification.assertion_level)} · {label(classification.confidence)} {messages.confidenceLower}
                     </span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="muted">No Governance classifications apply to this column.</p>
+              <p className="muted">{messages.noColumnGovernanceClassifications}</p>
             )}
             {classifications.length ? (
               <details className="column-evidence-disclosure">
-                <summary>Classification evidence</summary>
+                <summary>{messages.classificationEvidence}</summary>
                 <div className="column-evidence-list">
                   {classifications.map((classification) => (
                     <section
-                      aria-label={`Evidence for ${label(classification.category)}`}
+                      aria-label={`${messages.evidenceFor} ${label(classification.category)}`}
                       key={classification.id}
                     >
                       <strong>{label(classification.category)}</strong>
@@ -160,78 +163,80 @@ function ColumnDetailPanel({
 
           <section aria-labelledby="column-findings-title">
             <div className="column-detail-section-heading">
-              <h4 id="column-findings-title">Findings</h4>
+              <h4 id="column-findings-title">{messages.findings}</h4>
               <span>
-                {relatedFindings.length.toLocaleString()} related finding
-                {relatedFindings.length === 1 ? "" : "s"}
+                {countText(relatedFindings.length, messages.relatedFindingNoun, locale)}
               </span>
             </div>
             {relatedFindings.length ? (
               <ul className="column-related-findings">
-                {relatedFindings.map(({ source, finding }) => (
-                  <li key={finding.id}>
-                    <div>
-                      <span>{source} · {label(finding.severity)}</span>
-                      <strong>{finding.title}</strong>
-                      <small>
-                        {label(finding.assertion_level)} · {label(finding.confidence)} confidence
-                      </small>
-                    </div>
-                    <details>
-                      <summary>Evidence for {finding.title}</summary>
-                      <div className="column-finding-evidence">
-                        <p>{finding.description}</p>
-                        <EvidenceContent
-                          ids={finding.evidence_ids}
-                          evidence={evidence}
-                        />
+                {relatedFindings.map(({ source, finding }) => {
+                  const translated = findingText(finding, locale, evidence, column.name);
+                  return (
+                    <li key={finding.id}>
+                      <div>
+                        <span>{label(source)} · {label(finding.severity)}</span>
+                        <strong>{translated.title}</strong>
+                        <small>
+                          {label(finding.assertion_level)} · {label(finding.confidence)} {messages.confidenceLower}
+                        </small>
                       </div>
-                    </details>
-                  </li>
-                ))}
+                      <details>
+                        <summary>{messages.evidenceForFinding} {translated.title}</summary>
+                        <div className="column-finding-evidence">
+                          <p>{translated.description}</p>
+                          <EvidenceContent
+                            ids={finding.evidence_ids}
+                            evidence={evidence}
+                          />
+                        </div>
+                      </details>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
-              <p className="muted">No canonical findings are linked to this column.</p>
+              <p className="muted">{messages.noLinkedFindings}</p>
             )}
           </section>
 
           <details className="column-technical-details">
-            <summary>Technical details</summary>
+            <summary>{messages.technicalDetails}</summary>
             <div className="column-technical-content">
               <dl className="column-detail-grid">
-                <div><dt>Zero-based position</dt><dd>{column.position}</dd></div>
-                <div><dt>Physical dtype</dt><dd><code>{column.physical_dtype}</code></dd></div>
-                <div><dt>Row count</dt><dd>{column.row_count.toLocaleString()}</dd></div>
-                <div><dt>Non-null count</dt><dd>{column.non_null_count.toLocaleString()}</dd></div>
-                <div><dt>Null count</dt><dd>{column.null_count.toLocaleString()}</dd></div>
-                <div><dt>Distinct count</dt><dd>{column.distinct_count.toLocaleString()}</dd></div>
-                <div><dt>Null rate</dt><dd>{pct(column.null_ratio)}</dd></div>
-                <div><dt>Unique rate</dt><dd>{pct(column.uniqueness_ratio)}</dd></div>
-                <div><dt>Cardinality ratio</dt><dd>{pct(column.cardinality_ratio)}</dd></div>
-                <div><dt>Duplicate excess</dt><dd>{column.duplicate_excess_rows.toLocaleString()}</dd></div>
-                <div><dt>Constant</dt><dd>{column.is_constant ? "Yes" : "No"}</dd></div>
-                <div><dt>All null</dt><dd>{column.is_all_null ? "Yes" : "No"}</dd></div>
-                <div><dt>Candidate identifier</dt><dd>{column.is_candidate_identifier ? "Candidate" : "No"}</dd></div>
-                <div><dt>Candidate reason</dt><dd>{column.candidate_identifier_reason ?? "—"}</dd></div>
+                <div><dt>{messages.zeroBasedPosition}</dt><dd>{column.position}</dd></div>
+                <div><dt>{messages.physicalDtype}</dt><dd><code>{column.physical_dtype}</code></dd></div>
+                <div><dt>{messages.rowCount}</dt><dd>{number(column.row_count)}</dd></div>
+                <div><dt>{messages.nonNullCount}</dt><dd>{number(column.non_null_count)}</dd></div>
+                <div><dt>{messages.nullCount}</dt><dd>{number(column.null_count)}</dd></div>
+                <div><dt>{messages.distinctCount}</dt><dd>{number(column.distinct_count)}</dd></div>
+                <div><dt>{messages.nullRate}</dt><dd>{pct(column.null_ratio)}</dd></div>
+                <div><dt>{messages.uniqueRate}</dt><dd>{pct(column.uniqueness_ratio)}</dd></div>
+                <div><dt>{messages.cardinalityRatio}</dt><dd>{pct(column.cardinality_ratio)}</dd></div>
+                <div><dt>{messages.duplicateExcess}</dt><dd>{number(column.duplicate_excess_rows)}</dd></div>
+                <div><dt>{messages.constant}</dt><dd>{column.is_constant ? messages.yes : messages.no}</dd></div>
+                <div><dt>{messages.allNull}</dt><dd>{column.is_all_null ? messages.yes : messages.no}</dd></div>
+                <div><dt>{messages.candidateIdentifier}</dt><dd>{column.is_candidate_identifier ? messages.candidate : messages.no}</dd></div>
+                <div><dt>{messages.candidateReason}</dt><dd>{column.candidate_identifier_reason ?? "—"}</dd></div>
               </dl>
 
               {column.candidate_identifier ? (
-                <section aria-label={`Candidate identifier evidence for ${column.name}`}>
-                  <p className="column-detail-title">Candidate identifier evidence</p>
+                <section aria-label={`${messages.candidateEvidence} ${column.name}`}>
+                  <p className="column-detail-title">{messages.candidateEvidence}</p>
                   <dl className="column-detail-grid">
-                    <div><dt>Kind</dt><dd>{label(column.candidate_identifier.kind)}</dd></div>
-                    <div><dt>Reason</dt><dd>{column.candidate_identifier.reason}</dd></div>
-                    <div><dt>Name signal</dt><dd>{column.candidate_identifier.name_signal ? "Yes" : "No"}</dd></div>
-                    <div><dt>Completeness</dt><dd>{pct(column.candidate_identifier.completeness)}</dd></div>
-                    <div><dt>Uniqueness</dt><dd>{pct(column.candidate_identifier.uniqueness)}</dd></div>
-                    <div><dt>Confirmed key</dt><dd>{column.candidate_identifier.confirmed_key ? "Yes" : "No"}</dd></div>
+                    <div><dt>{messages.kind}</dt><dd>{label(column.candidate_identifier.kind)}</dd></div>
+                    <div><dt>{messages.reason}</dt><dd>{column.candidate_identifier.reason}</dd></div>
+                    <div><dt>{messages.nameSignal}</dt><dd>{column.candidate_identifier.name_signal ? messages.yes : messages.no}</dd></div>
+                    <div><dt>{messages.completeness}</dt><dd>{pct(column.candidate_identifier.completeness)}</dd></div>
+                    <div><dt>{messages.uniqueness}</dt><dd>{pct(column.candidate_identifier.uniqueness)}</dd></div>
+                    <div><dt>{messages.confirmedKey}</dt><dd>{column.candidate_identifier.confirmed_key ? messages.yes : messages.no}</dd></div>
                   </dl>
                 </section>
               ) : null}
 
               {statistics.length ? (
-                <section aria-label={`Aggregate statistics for ${column.name}`}>
-                  <p className="column-detail-title">Safe aggregate statistics</p>
+                <section aria-label={`${messages.aggregateStats} ${column.name}`}>
+                  <p className="column-detail-title">{messages.safeAggregateStats}</p>
                   <dl className="column-detail-grid">
                     {statistics.map(([name, value]) => (
                       <div key={name}>
@@ -244,19 +249,19 @@ function ColumnDetailPanel({
               ) : null}
 
               {signals ? (
-                <section aria-label={`Quality signals for ${column.name}`}>
-                  <p className="column-detail-title">Safe quality signals</p>
+                <section aria-label={`${messages.qualitySignalsFor} ${column.name}`}>
+                  <p className="column-detail-title">{messages.safeQualitySignals}</p>
                   <dl className="column-detail-grid">
-                    <div><dt>Primitive type</dt><dd>{label(signals.primitive_type)}</dd></div>
-                    <div><dt>Non-null count</dt><dd>{signals.non_null_count.toLocaleString()}</dd></div>
-                    <div><dt>Valid non-null count</dt><dd>{signals.valid_non_null_count.toLocaleString()}</dd></div>
-                    <div><dt>Invalid count</dt><dd>{signals.invalid_count.toLocaleString()}</dd></div>
-                    <div><dt>Recognized format family</dt><dd>{signals.has_recognized_format_family ? "Yes" : "No"}</dd></div>
+                    <div><dt>{messages.primitiveType}</dt><dd>{label(signals.primitive_type)}</dd></div>
+                    <div><dt>{messages.nonNullCount}</dt><dd>{number(signals.non_null_count)}</dd></div>
+                    <div><dt>{messages.validNonNullCount}</dt><dd>{number(signals.valid_non_null_count)}</dd></div>
+                    <div><dt>{messages.invalidCount}</dt><dd>{number(signals.invalid_count)}</dd></div>
+                    <div><dt>{messages.recognizedFormat}</dt><dd>{signals.has_recognized_format_family ? messages.yes : messages.no}</dd></div>
                   </dl>
                   {signals.format_family_counts.length ? (
                     <ul className="format-family-counts">
                       {signals.format_family_counts.map(([family, count]) => (
-                        <li key={family}>{label(family)}: {count.toLocaleString()}</li>
+                        <li key={family}>{label(family)}: {number(count)}</li>
                       ))}
                     </ul>
                   ) : null}
@@ -281,6 +286,7 @@ export function ColumnInventory({
   relatedFindings?: RelatedFinding[];
   evidence?: Evidence[];
 }) {
+  const { messages, label, number } = useLanguage();
   const [query, setQuery] = useState("");
   const [classification, setClassification] = useState("all");
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
@@ -371,22 +377,22 @@ export function ColumnInventory({
   return (
     <>
       <div className="column-inventory-toolbar">
-        <div className="filters" role="group" aria-label="Column inventory filters">
+        <div className="filters" role="group" aria-label={messages.inventoryFilters}>
           <label>
-            Search columns
+            {messages.searchColumns}
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Column name"
+              placeholder={messages.columnName}
             />
           </label>
           <label>
-            Classification
+            {messages.classification}
             <select
               value={classification}
               onChange={(event) => setClassification(event.target.value)}
             >
-              <option value="all">All classifications</option>
+              <option value="all">{messages.allClassificationsFilter}</option>
               {classificationOptions.map((category) => (
                 <option key={category} value={category}>{label(category)}</option>
               ))}
@@ -401,35 +407,35 @@ export function ColumnInventory({
                 setClassification("all");
               }}
             >
-              Clear filters
+              {messages.clearFilters}
             </button>
           ) : null}
         </div>
 
         <p className="column-result-count" role="status" aria-live="polite">
-          {shown.length.toLocaleString()} of {columns.length.toLocaleString()} columns
+          {interpolate(messages.showingColumns, { shown: number(shown.length), total: number(columns.length) })}
         </p>
       </div>
 
       <div
         className="table-wrap column-inventory-table"
         role="region"
-        aria-label="Scrollable column inventory"
+        aria-label={messages.scrollableInventory}
         tabIndex={0}
       >
         <table>
           <caption>
-            Structural column metrics joined with canonical Governance classifications.
+            {messages.inventoryCaption}
           </caption>
           <thead>
             <tr>
-              <th scope="col">Column</th>
-              <th scope="col">Type</th>
-              <th scope="col">Complete</th>
-              <th scope="col">Distinct / unique</th>
-              <th scope="col">Identifier</th>
-              <th scope="col">Classification</th>
-              <th scope="col"><span className="visually-hidden">Inspect</span></th>
+              <th scope="col">{messages.columnHeader}</th>
+              <th scope="col">{messages.type}</th>
+              <th scope="col">{messages.complete}</th>
+              <th scope="col">{messages.distinctUnique}</th>
+              <th scope="col">{messages.identifier}</th>
+              <th scope="col">{messages.classification}</th>
+              <th scope="col"><span className="visually-hidden">{messages.inspect}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -443,20 +449,20 @@ export function ColumnInventory({
                   <td>{pct(1 - column.null_ratio)}</td>
                   <td>
                     <span className="column-primary-metric">
-                      {column.distinct_count.toLocaleString()} distinct
+                      {number(column.distinct_count)} {messages.distinctLower}
                     </span>
                     {column.uniqueness_ratio != null ? (
                       <span className="column-secondary-metric">
-                        {pct(column.uniqueness_ratio)} unique
+                        {pct(column.uniqueness_ratio)} {messages.uniqueLower}
                       </span>
                     ) : null}
                   </td>
-                  <td>{column.is_candidate_identifier ? "Candidate" : "—"}</td>
+                  <td>{column.is_candidate_identifier ? messages.candidate : "—"}</td>
                   <td>
                     {canonicalClassifications.length ? (
                       <ul
                         className="column-classifications"
-                        aria-label={`Governance classifications for ${column.name}`}
+                        aria-label={`${messages.governanceClassificationsFor} ${column.name}`}
                       >
                         {canonicalClassifications.map((item) => (
                           <li
@@ -483,7 +489,7 @@ export function ColumnInventory({
                         setSelectedColumnId(column.column_id);
                       }}
                     >
-                      Inspect
+                      {messages.inspect}
                       <span className="visually-hidden"> {column.name}</span>
                     </button>
                   </td>
@@ -496,7 +502,7 @@ export function ColumnInventory({
 
       {!shown.length ? (
         <p className="empty" role="status">
-          No columns match the current filters. Adjust or clear the filters to continue.
+          {messages.noColumnsAdjust}
         </p>
       ) : null}
 

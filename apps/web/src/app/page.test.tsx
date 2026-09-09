@@ -53,7 +53,13 @@ const rowByName = (name: string) => {
   return row;
 };
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  window.localStorage.clear();
+  document.documentElement.lang = "en";
+});
 
 describe("V0.1 analysis flow", () => {
   it("renders upload and disables Analyze initially", () => { render(<Home />); expect(screen.getByText(/understand the quality/i)).toBeInTheDocument(); expect(screen.getByRole("button", { name: "Analyze dataset" })).toBeDisabled(); });
@@ -1376,5 +1382,173 @@ describe("untrusted response rendering", () => {
     ).toBeInTheDocument();
     expect(document.querySelector('img[src="x"]')).toBeNull();
     expect((globalThis as typeof globalThis & { __DGC_XSS__?: boolean }).__DGC_XSS__).toBeUndefined();
+  });
+});
+
+
+describe("Phase 10.8.4 bilingual interface", () => {
+  it("defaults to English and exposes an accessible language switcher", () => {
+    render(<Home />);
+    expect(screen.getByRole("heading", {
+      name: "Understand the quality and governance signals in your dataset.",
+    })).toBeInTheDocument();
+    const switcher = screen.getByRole("group", { name: "Language" });
+    expect(within(switcher).getByRole("button", { name: "Use English" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(within(switcher).getByRole("button", { name: "Usar español" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(document.documentElement).toHaveAttribute("lang", "en");
+  });
+
+  it("switches from English to Spanish and back without losing accessibility", () => {
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Usar español" }));
+    expect(screen.getByRole("heading", {
+      name: "Comprende las señales de calidad y gobernanza de tu dataset.",
+    })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Idioma" })).toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute("lang", "es");
+
+    fireEvent.click(screen.getByRole("button", { name: "Usar inglés" }));
+    expect(screen.getByRole("heading", {
+      name: "Understand the quality and governance signals in your dataset.",
+    })).toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute("lang", "en");
+  });
+
+  it("persists an explicit locale across remounts", async () => {
+    const first = render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Usar español" }));
+    expect(window.localStorage.getItem("dgc-locale")).toBe("es");
+    first.unmount();
+
+    render(<Home />);
+    expect(await screen.findByRole("heading", {
+      name: "Comprende las señales de calidad y gobernanza de tu dataset.",
+    })).toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute("lang", "es");
+  });
+
+  it("falls back to English for an invalid persisted locale", async () => {
+    window.localStorage.setItem("dgc-locale", "fr");
+    render(<Home />);
+    expect(await screen.findByRole("heading", {
+      name: "Understand the quality and governance signals in your dataset.",
+    })).toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute("lang", "en");
+  });
+
+  it("translates landing validation, loading and safe network errors", async () => {
+    let resolveRequest!: (response: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>((resolve) => { resolveRequest = resolve; })),
+    );
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Usar español" }));
+    fireEvent.change(screen.getByLabelText(/elegir un archivo csv/i), {
+      target: { files: [makeFile("invalid.txt")] },
+    });
+    expect(screen.getByText("Sube un archivo CSV o XLSX.")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/elegir un archivo csv/i), {
+      target: { files: [makeFile()] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analizar dataset" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Analizando dataset…");
+    resolveRequest(success());
+    await screen.findByText("Análisis completado");
+
+    fireEvent.click(screen.getByRole("button", { name: "Analizar otro dataset" }));
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("PRIVATE_URL")));
+    fireEvent.change(screen.getByLabelText(/elegir un archivo csv/i), {
+      target: { files: [makeFile()] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analizar dataset" }));
+    expect(await screen.findByText("No se pudo contactar con el servicio de análisis.")).toBeInTheDocument();
+    expect(screen.queryByText("PRIVATE_URL")).not.toBeInTheDocument();
+  });
+
+  it("translates core result surfaces while preserving canonical identifiers", async () => {
+    const canonical: AnalysisResponse = {
+      ...fixture,
+      analysis: {
+        ...fixture.analysis,
+        governance: {
+          ...fixture.analysis.governance,
+          findings: fixture.analysis.governance.findings.map((finding) => ({
+            ...finding,
+            title: "Inferred potential personal data",
+            description: "Column email matched deterministic governance signals; this is not a legal or compliance determination.",
+            method: "GOV-PERSONAL-001",
+          })),
+        },
+        recommendations: {
+          ...fixture.analysis.recommendations,
+          recommendations: fixture.analysis.recommendations.recommendations.map((recommendation) => ({
+            ...recommendation,
+            rule_id: "REC-GOV-PERSONAL-001",
+            action: "Review and document the intended handling, ownership and retention expectations for fields inferred as potential personal data.",
+            rationale: "The Governance finding contains deterministic signals consistent with potential personal data; documentation review is suggested, not a legal conclusion.",
+          })),
+        },
+      },
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success(canonical)));
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Usar español" }));
+    fireEvent.change(screen.getByLabelText(/elegir un archivo csv/i), {
+      target: { files: [makeFile()] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analizar dataset" }));
+    await screen.findByText("Análisis completado");
+
+    for (const heading of ["Resumen", "Calidad", "Gobernanza", "Recomendaciones", "Inventario de columnas"]) {
+      expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
+    }
+    expect(screen.getByRole("link", { name: "Columnas" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Columna" })).toBeInTheDocument();
+    expect(screen.getByText("Campos con posibles datos personales")).toBeInTheDocument();
+    expect(screen.getByText(/Revisa y documenta el tratamiento previsto/)).toBeInTheDocument();
+    const governanceSection = within(sectionByHeading("Gobernanza"));
+    const governanceFindings = within(
+      governanceSection.getByRole("heading", { name: "Hallazgos y evidencia de gobernanza" }).closest("section")!,
+    );
+    expect(governanceFindings.getByText("Posibles datos personales inferidos")).toBeInTheDocument();
+
+    const classificationSummary = governanceSection.getAllByText(
+      "Revisar detalles de la clasificación",
+    )[0];
+    fireEvent.click(classificationSummary);
+    const classificationDetails = within(classificationSummary.closest("details")!);
+    fireEvent.click(classificationDetails.getByText("Detalles técnicos"));
+    expect(classificationDetails.getByText("gc1", { selector: "code" })).toBeInTheDocument();
+    expect(screen.getByText("REC-GOV-PERSONAL-001", { selector: "code" })).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("undefined");
+  });
+
+  it("does not alter the analysis request when Spanish is selected", async () => {
+    const fetch = vi.fn().mockResolvedValue(success());
+    vi.stubGlobal("fetch", fetch);
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Usar español" }));
+    fireEvent.change(screen.getByLabelText(/elegir un archivo csv/i), {
+      target: { files: [makeFile("customers.csv")] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analizar dataset" }));
+    await screen.findByText("Análisis completado");
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const [url, init] = fetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("/api/v1/analyze");
+    expect(init.method).toBe("POST");
+    expect(init.body).toBeInstanceOf(FormData);
+    const body = init.body as FormData;
+    expect((body.get("file") as File).name).toBe("customers.csv");
+    expect([...body.keys()]).toEqual(["file"]);
   });
 });

@@ -18,6 +18,7 @@ V0.1 is a stateless, local-first application composed of a Next.js frontend and 
 - Governance-oriented classifications such as contact, geographic or financial information and **potential personal data**.
 - Evidence-backed findings and prioritized, traceable recommendations.
 - A synthetic demo that follows the same real API and analysis path as an uploaded file.
+- English and Spanish presentation with a persistent in-app language selector.
 
 ## Evidence first
 

@@ -1,16 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLanguage } from "../../i18n/LanguageProvider";
 
-const LINKS = [
-  ["overview", "Overview"],
-  ["quality", "Quality"],
-  ["governance", "Governance"],
-  ["recommendations", "Recommendations"],
-  ["columns", "Columns"],
-] as const;
+const SECTION_IDS = ["overview", "quality", "governance", "recommendations", "columns"] as const;
 
-type SectionId = (typeof LINKS)[number][0];
+type SectionId = (typeof SECTION_IDS)[number];
 
 interface ResultNavigationProps {
   datasetName: string;
@@ -23,13 +18,15 @@ export function ResultNavigation({
   sourceFormat,
   overallScore,
 }: ResultNavigationProps) {
+  const { messages } = useLanguage();
+  const links = SECTION_IDS.map((id) => [id, messages[id]] as const);
   const [activeSection, setActiveSection] = useState<SectionId>("overview");
   const navigation = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
 
-    const order = new Map(LINKS.map(([id], index) => [id, index]));
+    const order = new Map(SECTION_IDS.map((id, index) => [id, index]));
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -52,7 +49,7 @@ export function ResultNavigation({
       },
     );
 
-    for (const [id] of LINKS) {
+    for (const id of SECTION_IDS) {
       const section = document.getElementById(id);
       if (section) observer.observe(section);
     }
@@ -77,7 +74,7 @@ export function ResultNavigation({
   return (
     <div className="analysis-nav-shell">
       <div className="analysis-nav-inner">
-        <p className="compact-dataset-context" aria-label="Current dataset context">
+        <p className="compact-dataset-context" aria-label={messages.currentDataset}>
           <span className="compact-dataset-identity">
             <strong title={datasetName}>{datasetName}</strong>
             <span className="compact-separator" aria-hidden="true">·</span>
@@ -85,12 +82,12 @@ export function ResultNavigation({
           </span>
           <span className="compact-quality">
             {overallScore == null
-              ? "N/A quality"
-              : overallScore + " / 100 quality"}
+              ? messages.naQuality
+              : `${overallScore} / 100 ${messages.qualitySuffix}`}
           </span>
         </p>
-        <nav ref={navigation} className="result-nav" aria-label="Result sections">
-          {LINKS.map(([id, title]) => (
+        <nav ref={navigation} className="result-nav" aria-label={messages.resultSections}>
+          {links.map(([id, title]) => (
             <a
               key={id}
               href={`#${id}`}

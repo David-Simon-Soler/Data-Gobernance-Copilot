@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { ResultsView } from "../components/results/ResultsView";
 import { UploadPanel } from "../components/upload/UploadPanel";
+import { LanguageProvider, useLanguage } from "../i18n/LanguageProvider";
 import { analyzeDataset } from "../lib/api";
 import { loadDemoFile } from "../lib/demo";
 import { validateFile } from "../lib/validation";
@@ -10,7 +12,8 @@ import type { AnalysisResponse } from "../types/api";
 
 type State = "IDLE" | "FILE_SELECTED" | "SUBMITTING" | "SUCCESS" | "ERROR";
 
-export default function Home() {
+function HomeContent() {
+  const { messages } = useLanguage();
   const [state, setState] = useState<State>("IDLE");
   const [file, setFile] = useState<File | null>(null);
   const [response, setResponse] = useState<AnalysisResponse | null>(null);
@@ -89,22 +92,20 @@ export default function Home() {
   return (
     <>
       <header className="global-header">
-        <div className="global-header-inner" role="group" aria-label="Product identity">
+        <div className="global-header-inner" role="group" aria-label={messages.productIdentity}>
           <strong>Data Governance Copilot</strong>
-          <span>v0.1</span>
+          <div className="global-header-actions">
+            <span>v0.1</span>
+            <LanguageSwitcher />
+          </div>
         </div>
       </header>
       <main className="shell entry-shell">
         <section className="entry-content" aria-labelledby="entry-title">
           <header className="entry-copy">
-            <p className="eyebrow">Evidence-first dataset assessment</p>
-            <h1 id="entry-title">
-              Understand the quality and governance signals in your dataset.
-            </h1>
-            <p className="lede">
-              Deterministic profiling, quality assessment and governance
-              classification signals backed by traceable evidence.
-            </p>
+            <p className="eyebrow">{messages.landingEyebrow}</p>
+            <h1 id="entry-title">{messages.landingTitle}</h1>
+            <p className="lede">{messages.landingLede}</p>
           </header>
           <UploadPanel
             file={file}
@@ -118,5 +119,13 @@ export default function Home() {
         </section>
       </main>
     </>
+  );
+}
+
+export default function Home() {
+  return (
+    <LanguageProvider>
+      <HomeContent />
+    </LanguageProvider>
   );
 }

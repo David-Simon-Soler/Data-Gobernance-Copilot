@@ -1,6 +1,8 @@
 "use client";
 
+import { useLanguage } from "../../i18n/LanguageProvider";
 import type { AnalysisResponse } from "../../types/api";
+import { LanguageSwitcher } from "../LanguageSwitcher";
 import { ColumnInventory } from "./ColumnInventory";
 import { DatasetContextHeader } from "./DatasetContextHeader";
 import { GovernanceSection } from "./GovernanceSection";
@@ -18,6 +20,7 @@ export function ResultsView({
   isSyntheticDemo: boolean;
   onReset: () => void;
 }) {
+  const { messages, number } = useLanguage();
   const { analysis } = response;
   const columnFindings = [
     ...analysis.profiling.findings.map((finding) => ({
@@ -42,14 +45,17 @@ export function ResultsView({
   return (
     <>
       <a className="skip-link" href="#analysis-results">
-        Skip to analysis results
+        {messages.skipResults}
       </a>
       <header className="app-header">
         <div className="app-header-inner">
           <strong>Data Governance Copilot</strong>
-          <button onClick={onReset} className="button secondary">
-            Analyze another dataset
-          </button>
+          <div className="app-header-actions">
+            <LanguageSwitcher />
+            <button onClick={onReset} className="button secondary">
+              {messages.analyzeAnother}
+            </button>
+          </div>
         </div>
       </header>
       <DatasetContextHeader
@@ -71,13 +77,11 @@ export function ResultsView({
         <section id="columns" aria-labelledby="columns-title">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Dataset schema</p>
-              <h2 id="columns-title">Column inventory</h2>
+              <p className="eyebrow">{messages.datasetSchema}</p>
+              <h2 id="columns-title">{messages.columnInventory}</h2>
             </div>
             <p className="section-intro">
-              {analysis.profiling.columns.length.toLocaleString()} canonical
-              {" "}column{analysis.profiling.columns.length === 1 ? "" : "s"},
-              with structural metrics and joined Governance classifications.
+              {number(analysis.profiling.columns.length)} {messages.columnInventoryIntro}
             </p>
           </div>
           <ColumnInventory

@@ -240,3 +240,84 @@ test("normal CSV upload succeeds through the native input and real API", async (
   await expect(page.getByText("3 columns", { exact: true })).toBeVisible();
   await expect(page.getByText("Synthetic sample dataset")).toHaveCount(0);
 });
+
+
+test("language choice persists through a real bilingual analysis flow", async ({
+  page,
+}) => {
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", {
+      name: "Understand the quality and governance signals in your dataset.",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Usar español" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Comprende las señales de calidad y gobernanza de tu dataset.",
+    }),
+  ).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "es");
+
+  const analysisResponse = page.waitForResponse(
+    (response) =>
+      response.url() === "http://127.0.0.1:8000/api/v1/analyze" &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Probar el dataset de ejemplo" }).click();
+  const response = await analysisResponse;
+  expect(response.status()).toBe(200);
+  const payload = await response.json();
+  const classificationId = payload.analysis.governance.classifications[0].id as string;
+
+  for (const heading of ["Resumen", "Gobernanza", "Inventario de columnas"]) {
+    await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+  }
+  await expect(page.getByRole("link", { name: "Columnas", exact: true })).toBeVisible();
+
+  const classification = page.locator(`[id="classification-${classificationId}"]`);
+  await classification.getByText("Revisar detalles de la clasificación", { exact: true }).click();
+  await classification.getByText("Detalles técnicos", { exact: true }).click();
+  await expect(classification.getByText(classificationId, { exact: true })).toBeVisible();
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 1024, height: 768 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        ),
+      )
+      .toBe(true);
+  }
+  await expect(page.locator("body")).not.toContainText("undefined");
+
+  await page.reload();
+  await expect(
+    page.getByRole("heading", {
+      name: "Comprende las señales de calidad y gobernanza de tu dataset.",
+    }),
+  ).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "es");
+  await page.getByRole("button", { name: "Usar inglés" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Understand the quality and governance signals in your dataset.",
+    }),
+  ).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+
+  expect(consoleErrors).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});

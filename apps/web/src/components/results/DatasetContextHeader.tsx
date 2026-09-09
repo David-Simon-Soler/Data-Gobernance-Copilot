@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useLanguage } from "../../i18n/LanguageProvider";
 import { scorePercent } from "../../lib/format";
 import type { AnalysisResponse } from "../../types/api";
 
@@ -13,6 +14,7 @@ export function DatasetContextHeader({
   response,
   isSyntheticDemo,
 }: DatasetContextHeaderProps) {
+  const { messages, number, label } = useLanguage();
   const title = useRef<HTMLHeadingElement>(null);
   const { metadata, analysis } = response;
   const { quality, governance, recommendations } = analysis;
@@ -23,30 +25,30 @@ export function DatasetContextHeader({
 
   const metrics = [
     {
-      label: "Structural quality",
+      label: messages.structuralQuality,
       value: quality.overall_score ?? "N/A",
-      suffix: quality.overall_score == null ? "Not applicable" : "/ 100",
+      suffix: quality.overall_score == null ? label("NOT_APPLICABLE") : "/ 100",
     },
     {
-      label: "Observed completeness",
+      label: messages.observedCompleteness,
       value:
         quality.observed_completeness == null
           ? "N/A"
           : scorePercent(quality.observed_completeness),
       suffix:
-        quality.observed_completeness == null ? "Not applicable" : undefined,
+        quality.observed_completeness == null ? label("NOT_APPLICABLE") : undefined,
     },
     {
-      label: "Quality findings",
-      value: quality.findings.length.toLocaleString(),
+      label: messages.qualityFindings,
+      value: number(quality.findings.length),
     },
     {
-      label: "Governance classifications",
-      value: governance.classifications.length.toLocaleString(),
+      label: messages.governanceClassifications,
+      value: number(governance.classifications.length),
     },
     {
-      label: "Recommendations",
-      value: recommendations.summary.total_count.toLocaleString(),
+      label: messages.recommendations,
+      value: number(recommendations.summary.total_count),
     },
   ];
 
@@ -55,9 +57,9 @@ export function DatasetContextHeader({
       <div className="dataset-header-inner">
         <div className="dataset-identity">
           <div>
-            <p className="eyebrow status-label">Analysis complete</p>
+            <p className="eyebrow status-label">{messages.analysisComplete}</p>
             {isSyntheticDemo ? (
-              <p className="synthetic-result-label">Synthetic sample dataset</p>
+              <p className="synthetic-result-label">{messages.syntheticDataset}</p>
             ) : null}
             <h1
               ref={title}
@@ -72,20 +74,20 @@ export function DatasetContextHeader({
         </div>
 
         <p className="dataset-context">
-          {metadata.sheet_name ? <span>Sheet: {metadata.sheet_name}</span> : null}
-          <span>{metadata.row_count.toLocaleString()} rows</span>
-          <span>{metadata.column_count.toLocaleString()} columns</span>
+          {metadata.sheet_name ? <span>{messages.sheet}: {metadata.sheet_name}</span> : null}
+          <span>{number(metadata.row_count)} {metadata.row_count === 1 ? messages.row : messages.rows}</span>
+          <span>{number(metadata.column_count)} {metadata.column_count === 1 ? messages.column : messages.columns.toLowerCase()}</span>
         </p>
 
-        <div className="dataset-metrics" role="group" aria-label="Review summary">
+        <div className="dataset-metrics" role="group" aria-label={messages.reviewSummary}>
           {metrics.map((metric) => (
             <div
               className="dataset-metric"
               key={metric.label}
               role="group"
               aria-label={
-                metric.label === "Structural quality"
-                  ? "Overall structural quality"
+                metric.label === messages.structuralQuality
+                  ? messages.overallStructuralQuality
                   : metric.label
               }
             >

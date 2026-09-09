@@ -1,4 +1,7 @@
-import { label } from "../../lib/format";
+"use client";
+
+import { useLanguage } from "../../i18n/LanguageProvider";
+import { countText, findingText } from "../../i18n/translations";
 import type { ColumnProfile, Evidence, Finding } from "../../types/api";
 import { EvidenceBox } from "./EvidenceBox";
 
@@ -17,31 +20,33 @@ export function FindingCard({
   modelVersion: string;
   compact?: boolean;
 }) {
+  const { locale, messages, label } = useLanguage();
   const subject =
     columns.find((column) => column.column_id === finding.subject)?.name ??
     finding.subject;
+  const translated = findingText(finding, locale, evidence, subject);
   const detail = (
     <>
-      <p>{finding.description}</p>
+      <p>{translated.description}</p>
       {!compact ? (
         <>
           <p className="finding-subject">
-            Affected field: <strong>{subject}</strong>
+            {messages.affectedField}: <strong>{subject}</strong>
           </p>
           <p className="finding-meta">
-            {label(finding.assertion_level)} · {label(finding.confidence)} confidence
+            {label(finding.assertion_level)} · {label(finding.confidence)} {messages.confidenceLower}
           </p>
         </>
       ) : null}
       <EvidenceBox ids={finding.evidence_ids} evidence={evidence} />
       <details className="technical">
-        <summary>Technical details</summary>
+        <summary>{messages.technicalDetails}</summary>
         <dl className="technical-grid">
-          <div><dt>Source</dt><dd>{source}</dd></div>
-          <div><dt>Model</dt><dd><code>{modelVersion}</code></dd></div>
-          <div><dt>Finding ID</dt><dd><code>{finding.id}</code></dd></div>
-          <div><dt>Method</dt><dd>{finding.method}</dd></div>
-          <div><dt>Category</dt><dd><code>{finding.category}</code></dd></div>
+          <div><dt>{messages.source}</dt><dd>{label(source)}</dd></div>
+          <div><dt>{messages.model}</dt><dd><code>{modelVersion}</code></dd></div>
+          <div><dt>{messages.findingId}</dt><dd><code>{finding.id}</code></dd></div>
+          <div><dt>{messages.method}</dt><dd>{finding.method}</dd></div>
+          <div><dt>{messages.category}</dt><dd><code>{finding.category}</code></dd></div>
         </dl>
       </details>
     </>
@@ -55,22 +60,22 @@ export function FindingCard({
       <div className="finding-heading">
         <div>
           <p className="eyebrow">{label(finding.category)}</p>
-          <h4>{finding.title}</h4>
+          <h4>{translated.title}</h4>
         </div>
         <span className={`severity-label ${finding.severity.toLowerCase()}`}>
-          Severity: {label(finding.severity)}
+          {messages.severity}: {label(finding.severity)}
         </span>
       </div>
       {compact ? (
         <>
           <p className="finding-compact-meta">
-            <span>Affected field: <strong>{subject}</strong></span>
+            <span>{messages.affectedField}: <strong>{subject}</strong></span>
             <span>
-              {label(finding.assertion_level)} · {label(finding.confidence)} confidence
+              {label(finding.assertion_level)} · {label(finding.confidence)} {messages.confidenceLower}
             </span>
           </p>
           <details className="finding-review">
-            <summary>Review finding details</summary>
+            <summary>{messages.reviewFindingDetails}</summary>
             <div className="finding-review-content">{detail}</div>
           </details>
         </>
@@ -90,7 +95,7 @@ export function FindingsSection({
   collapsed = false,
   compact = false,
   description,
-  emptyMessage = "No findings were produced by the current V0.1 rules.",
+  emptyMessage,
 }: {
   title: string;
   findings: Finding[];
@@ -104,6 +109,7 @@ export function FindingsSection({
   description?: string;
   emptyMessage?: string;
 }) {
+  const { locale, messages, number } = useLanguage();
   const list = (
     <div className="finding-list">
       {findings.map((finding) => (
@@ -135,20 +141,20 @@ export function FindingsSection({
         )}
         {collapsed || compact ? (
           <span>
-            {findings.length.toLocaleString()} {collapsed ? "traceability " : ""}finding
-            {findings.length === 1 ? "" : "s"}
+            {number(findings.length)} {collapsed ? `${messages.traceability} ` : ""}
+            {countText(findings.length, messages.findingNoun, locale).replace(/^\S+\s+/, "")}
           </span>
         ) : null}
       </div>
       {findings.length ? (
         collapsed ? (
           <details className="findings-disclosure">
-            <summary>Review all findings</summary>
+            <summary>{messages.reviewAllFindings}</summary>
             {list}
           </details>
         ) : list
       ) : (
-        <p className="empty">{emptyMessage}</p>
+        <p className="empty">{emptyMessage ?? messages.noFindings}</p>
       )}
     </section>
   );

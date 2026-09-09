@@ -1,6 +1,7 @@
 "use client";
 
-import { label } from "../../lib/format";
+import { useLanguage } from "../../i18n/LanguageProvider";
+import { countText, findingText, recommendationText } from "../../i18n/translations";
 import type {
   AnalysisResponse,
   Evidence,
@@ -86,18 +87,20 @@ function SourceRelationship({
   evidence: Evidence[];
   columnNames: ReadonlyMap<string, string>;
 }) {
+  const { locale, messages } = useLanguage();
   if (!finding) {
     return (
       <li className="recommendation-source-row">
         <div>
-          <strong>Source unavailable</strong>
-          <span>Finding details are unavailable.</span>
+          <strong>{messages.sourceUnavailable}</strong>
+          <span>{messages.findingUnavailable}</span>
         </div>
         <code>{recommendation.finding_id}</code>
       </li>
     );
   }
   const subject = findingSubject(finding, columnNames) ?? finding.subject;
+  const translatedFinding = findingText(finding, locale, evidence, subject);
 
   const revealSourceFinding = () => {
     const source = document.getElementById(`finding-${finding.id}`);
@@ -111,15 +114,15 @@ function SourceRelationship({
     <li className="recommendation-source-row">
       <div className="recommendation-source-identity">
         <strong>{subject}</strong>
-        <span>{finding.title}</span>
+        <span>{translatedFinding.title}</span>
       </div>
       <a href={`#finding-${finding.id}`} onClick={revealSourceFinding}>
-        View source finding for {subject}
+        {messages.viewSourceFinding} {subject}
       </a>
       <details className="recommendation-source-evidence">
-        <summary>Review evidence for {subject}</summary>
+        <summary>{messages.reviewEvidenceFor} {subject}</summary>
         <div className="recommendation-source-evidence-content">
-          <p>{finding.description}</p>
+          <p>{translatedFinding.description}</p>
           <EvidenceContent ids={finding.evidence_ids} evidence={evidence} />
         </div>
       </details>
@@ -132,6 +135,7 @@ export function RecommendationsSection({
 }: {
   analysis: AnalysisResponse["analysis"];
 }) {
+  const { locale, messages, label, number } = useLanguage();
   const { profiling, quality, governance, recommendations } = analysis;
   const findings = [
     ...profiling.findings,
@@ -153,30 +157,27 @@ export function RecommendationsSection({
     <section id="recommendations" aria-labelledby="recommendations-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Suggested next actions</p>
-          <h2 id="recommendations-title">Recommendations</h2>
+          <p className="eyebrow">{messages.suggestedActions}</p>
+          <h2 id="recommendations-title">{messages.recommendations}</h2>
         </div>
         <p className="section-intro">
-          Deterministic suggestions linked to the source findings and evidence
-          that produced them. Priority communicates action order, not severity
-          or risk.
+          {messages.recommendationsIntro}
         </p>
       </div>
 
-      <div className="recommendation-summary" aria-label="Recommendation summary">
+      <div className="recommendation-summary" aria-label={messages.recommendationSummary}>
         <p>
-          <strong>{recommendations.summary.total_count.toLocaleString()}</strong>
+          <strong>{number(recommendations.summary.total_count)}</strong>
           <span>
-            suggested action
-            {recommendations.summary.total_count === 1 ? "" : "s"}
+            {countText(recommendations.summary.total_count, messages.actionNoun, locale).replace(/^\S+\s+/, "")}
           </span>
         </p>
         {recommendations.summary.counts_by_priority.length ? (
-          <dl aria-label="Canonical recommendation counts by priority">
+          <dl aria-label={messages.canonicalPriorityCounts}>
             {recommendations.summary.counts_by_priority.map(([priority, count]) => (
               <div key={priority}>
-                <dt>{priority}</dt>
-                <dd>{count.toLocaleString()}</dd>
+                <dt>{label(priority)}</dt>
+                <dd>{number(count)}</dd>
               </div>
             ))}
           </dl>
@@ -187,6 +188,13 @@ export function RecommendationsSection({
         <div className="recommendation-list">
           {groups.map((group) => {
             const fields = affectedFields(group, findingsById, columnNames);
+            const firstRecommendation = group.recommendations[0];
+            const sourceFinding = firstRecommendation
+              ? findingsById.get(firstRecommendation.finding_id)
+              : undefined;
+            const translated = firstRecommendation
+              ? recommendationText(firstRecommendation, locale, sourceFinding, evidence)
+              : { action: group.action, rationale: group.rationale };
             return (
               <article
                 className={`recommendation-group priority-${group.priority.toLowerCase()}`}
@@ -194,33 +202,31 @@ export function RecommendationsSection({
               >
                 <header className="recommendation-action-heading">
                   <span className={`priority-label ${group.priority.toLowerCase()}`}>
-                    {group.priority}
+                    {label(group.priority)}
                   </span>
                   <div>
-                    <h3>{group.action}</h3>
+                    <h3>{translated.action}</h3>
                     {fields.length ? (
                       <p className="recommendation-fields">
-                        <span>Fields</span>
+                        <span>{messages.fields}</span>
                         <span>{fields.join(" · ")}</span>
                       </p>
                     ) : null}
                   </div>
                 </header>
-                <p className="recommendation-rationale">{group.rationale}</p>
+                <p className="recommendation-rationale">{translated.rationale}</p>
                 <p className="recommendation-source-summary">
-                  {label(group.source)} · {group.recommendations.length.toLocaleString()} source
-                  {" "}finding{group.recommendations.length === 1 ? "" : "s"}
+                  {label(group.source)} · {countText(group.recommendations.length, messages.sourceFindingNoun, locale)}
                 </p>
                 <details className="recommendation-traceability">
-                  <summary aria-label="Evidence and source findings">
-                    Evidence &amp; sources
+                  <summary aria-label={messages.evidenceSourceFindings}>
+                    {messages.evidenceSources}
                   </summary>
                   <div className="recommendation-traceability-content">
                     <div className="recommendation-traceability-heading">
-                      <h4>Source findings</h4>
+                      <h4>{messages.sourceFindings}</h4>
                       <span>
-                        {group.recommendations.length.toLocaleString()} canonical source
-                        {" "}relationship{group.recommendations.length === 1 ? "" : "s"}
+                        {countText(group.recommendations.length, messages.canonicalRelationshipNoun, locale)}
                       </span>
                     </div>
                     <ul className="recommendation-sources">
@@ -235,15 +241,15 @@ export function RecommendationsSection({
                       ))}
                     </ul>
                     <details className="technical recommendation-technical">
-                      <summary>Technical details</summary>
+                      <summary>{messages.technicalDetails}</summary>
                       <div className="technical-records">
                         {group.recommendations.map((recommendation) => (
                           <dl className="technical-grid" key={recommendation.id}>
-                            <div><dt>Recommendation ID</dt><dd><code>{recommendation.id}</code></dd></div>
-                            <div><dt>Finding ID</dt><dd><code>{recommendation.finding_id}</code></dd></div>
-                            <div><dt>Rule</dt><dd><code>{recommendation.rule_id}</code></dd></div>
-                            <div><dt>Model</dt><dd><code>{recommendation.model_version}</code></dd></div>
-                            <div><dt>Category</dt><dd><code>{recommendation.category}</code></dd></div>
+                            <div><dt>{messages.recommendationId}</dt><dd><code>{recommendation.id}</code></dd></div>
+                            <div><dt>{messages.findingId}</dt><dd><code>{recommendation.finding_id}</code></dd></div>
+                            <div><dt>{messages.rule}</dt><dd><code>{recommendation.rule_id}</code></dd></div>
+                            <div><dt>{messages.model}</dt><dd><code>{recommendation.model_version}</code></dd></div>
+                            <div><dt>{messages.category}</dt><dd><code>{recommendation.category}</code></dd></div>
                           </dl>
                         ))}
                       </div>
@@ -256,7 +262,7 @@ export function RecommendationsSection({
         </div>
       ) : (
         <p className="empty">
-          No recommendations were produced by the current V0.1 rules.
+          {messages.noRecommendations}
         </p>
       )}
     </section>
