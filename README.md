@@ -1,10 +1,14 @@
 # Data Governance Copilot
 
-**Deterministic, evidence-first dataset assessment for CSV and XLSX files.**
+**A deterministic, evidence-first tool for profiling CSV/XLSX datasets, evaluating structural data quality, surfacing governance signals and producing traceable recommendations.**
+
+[Current release: v0.1.0](https://github.com/David-Simon-Soler/Data-Gobernance-Copilot/releases/tag/v0.1.0) · [MIT License](LICENSE) · Python/FastAPI · TypeScript/Next.js
 
 Data Governance Copilot helps analysts and governance practitioners understand a dataset before using it. It profiles structure, calculates a reproducible quality assessment, surfaces governance-oriented classifications and links each recommendation back to the finding and evidence that produced it.
 
 V0.1 is a stateless, local-first application composed of a Next.js frontend and a FastAPI backend. It does not require AI, an account or a database.
+
+![Data Governance Copilot landing page with CSV/XLSX upload and synthetic demo entry points](docs/assets/data-governance-copilot-landing.png)
 
 ## What it provides
 
@@ -17,7 +21,7 @@ V0.1 is a stateless, local-first application composed of a Next.js frontend and 
 
 ## Evidence first
 
-The product separates what the system knows from what still requires judgment:
+**Every finding must be explainable by evidence.** The product separates what the system knows from what still requires judgment:
 
 - `DETECTED`: a deterministic or calculated fact.
 - `INFERRED`: a statistical or semantic classification with uncertainty and signals that require review.
@@ -37,6 +41,32 @@ The bundled **Customer Operations Sample** is a synthetic XLSX with 50 rows and 
 
 The example illustrates an important boundary: high aggregate structural quality does not mean that nothing requires review, and it does not establish that a dataset is safe or compliant. See the [synthetic demo specification](docs/SYNTHETIC_DEMO.md).
 
+## Product walkthrough
+
+### 1. Overview
+
+The overview keeps dataset context, structural quality, observed completeness and the items requiring attention together, without hiding the distinction between Quality findings, Governance classifications and suggested actions.
+
+![Analysis overview for the synthetic Customer Operations dataset](docs/assets/data-governance-copilot-overview.png)
+
+### 2. Governance review
+
+Governance classifications identify fields for human review, including potential personal-data signals. They remain `INFERRED` conclusions with visible confidence and do not assert that data is personal or establish regulatory compliance.
+
+![Governance review showing potential personal-data fields and classification confidence](docs/assets/data-governance-copilot-governance.png)
+
+### 3. Column inspection
+
+The searchable and filterable inventory joins structural metrics with canonical Governance classifications so reviewers can move from the dataset summary to a specific field.
+
+![Filtered column inventory combining structural metrics and Governance classifications](docs/assets/data-governance-copilot-columns.png)
+
+### 4. Evidence detail
+
+Field-level inspection exposes the exact metrics, classifications, related findings and expandable evidence behind the assessment. Rule and finding provenance remain available for deterministic traceability.
+
+![Column detail panel showing profile metrics, classifications and related evidence](docs/assets/data-governance-copilot-column-detail.png)
+
 ## Architecture
 
 ```text
@@ -48,6 +78,8 @@ Browser -> Next.js -> direct HTTP -> FastAPI -> Ingestion -> Profiling
 ```
 
 Analysis is synchronous and the domain pipeline runs in bounded memory. The browser calls FastAPI directly; there is no Next.js API proxy, database, persistence, authentication or background queue. The HTTP multipart framework may spool upload data to an OS-managed temporary file before the domain pipeline receives it; that temporary lifecycle is framework-managed, not application persistence. The backend remains the source of truth for every analytical rule. See [Architecture](docs/ARCHITECTURE.md) and the [API contract](docs/API.md).
+
+The frontend uses Next.js and TypeScript. The Python backend uses FastAPI, Polars for dataframe processing and openpyxl for guarded XLSX reading.
 
 ## Quick start
 
@@ -77,6 +109,8 @@ npm run start
 Open `http://localhost:3000`. The frontend URL and configured CORS origin must match exactly. No secret is required. See [Release and local execution](docs/RELEASE.md) for clean installation, development and troubleshooting.
 
 ## Validation
+
+The validated v0.1.0 release candidate passed 181 backend tests, 89 frontend tests, 5/5 critical Playwright E2E tests and 4/4 presentation checks. npm and Python dependency audits reported no known vulnerabilities at release validation time.
 
 ```sh
 # Backend
@@ -128,7 +162,7 @@ The application is local-first and self-hostable; uploaded data is sent from the
 
 ## Project status
 
-Phases 0-9 and release preparation through Phase 10.4 are complete. Phase 10.5 visual refinement is in final validation. Major product features remain deferred. See the [Roadmap](docs/ROADMAP.md).
+Current release: [v0.1.0](https://github.com/David-Simon-Soler/Data-Gobernance-Copilot/releases/tag/v0.1.0). The tag identifies the validated first public release; major product features remain deferred. See the [Roadmap](docs/ROADMAP.md).
 
 ## Documentation
 
