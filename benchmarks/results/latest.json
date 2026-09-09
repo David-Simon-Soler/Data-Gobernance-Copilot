@@ -1,0 +1,607 @@
+{
+  "schema_version": "0.1",
+  "generated_at_utc": "2026-09-09T10:23:00.167557+00:00",
+  "environment": {
+    "python": "3.13.15",
+    "platform": "Linux-7.2.3-arch1-2-x86_64-with-glibc2.42",
+    "kernel": "Linux 7.2.3-arch1-2 #1 SMP PREEMPT_DYNAMIC Thu, 03 Sep 2026 17:55:06 +0000 x86_64",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12450H",
+    "logical_cpus": 12,
+    "ram_total_kib": 15981484,
+    "ram_total_gib": 15.241
+  },
+  "methodology": {
+    "seed": 20260909,
+    "measured_runs_per_csv": 3,
+    "timing": "time.perf_counter",
+    "memory": "resource.getrusage(RUSAGE_SELF).ru_maxrss on Linux",
+    "pipeline": "app.analysis.service.analyze_dataset with timed ingestion wrapper",
+    "warmup_runs": 0
+  },
+  "datasets": [
+    {
+      "name": "SMALL_BASELINE",
+      "filename": "small_baseline.csv",
+      "rows": 1000,
+      "columns": 10,
+      "cells": 10000,
+      "expected": "accepted",
+      "bytes": 57894,
+      "mib": 0.0552,
+      "generation_seconds": 0.010172
+    },
+    {
+      "name": "MEDIUM_REALISTIC",
+      "filename": "medium_realistic.csv",
+      "rows": 10000,
+      "columns": 20,
+      "cells": 200000,
+      "expected": "accepted",
+      "bytes": 951153,
+      "mib": 0.9071,
+      "generation_seconds": 0.104532
+    },
+    {
+      "name": "LARGE_REALISTIC",
+      "filename": "large_realistic.csv",
+      "rows": 50000,
+      "columns": 20,
+      "cells": 1000000,
+      "expected": "accepted",
+      "bytes": 4767317,
+      "mib": 4.5465,
+      "generation_seconds": 0.531232
+    },
+    {
+      "name": "ROW_LIMIT",
+      "filename": "row_limit.csv",
+      "rows": 100000,
+      "columns": 10,
+      "cells": 1000000,
+      "expected": "accepted",
+      "bytes": 2252049,
+      "mib": 2.1477,
+      "generation_seconds": 0.355583
+    },
+    {
+      "name": "TORTURE_MIXED",
+      "filename": "torture_mixed.csv",
+      "rows": 41000,
+      "columns": 20,
+      "cells": 820000,
+      "expected": "accepted",
+      "bytes": 5159686,
+      "mib": 4.9207,
+      "generation_seconds": 0.617702
+    },
+    {
+      "name": "HIGH_COLUMN",
+      "filename": "high_column.csv",
+      "rows": 4000,
+      "columns": 250,
+      "cells": 1000000,
+      "expected": "accepted",
+      "bytes": 2007918,
+      "mib": 1.9149,
+      "generation_seconds": 0.235585
+    },
+    {
+      "name": "LIMIT_REJECTION_ROWS",
+      "filename": "limit_rejection_rows.csv",
+      "rows": 100001,
+      "columns": 1,
+      "cells": 100001,
+      "expected": "rejected",
+      "bytes": 452027,
+      "mib": 0.4311,
+      "generation_seconds": 0.109876
+    },
+    {
+      "name": "LIMIT_REJECTION_COLUMNS",
+      "filename": "limit_rejection_columns.csv",
+      "rows": 1,
+      "columns": 251,
+      "cells": 251,
+      "expected": "rejected",
+      "bytes": 1757,
+      "mib": 0.0017,
+      "generation_seconds": 0.000582
+    },
+    {
+      "name": "LIMIT_REJECTION_CELLS",
+      "filename": "limit_rejection_cells.csv",
+      "rows": 4001,
+      "columns": 250,
+      "cells": 1000250,
+      "expected": "rejected",
+      "bytes": 2008420,
+      "mib": 1.9154,
+      "generation_seconds": 0.227113
+    },
+    {
+      "name": "MEDIUM_XLSX",
+      "filename": "medium_representative.xlsx",
+      "rows": 10000,
+      "columns": 20,
+      "cells": 200000,
+      "expected": "accepted",
+      "bytes": 992382,
+      "mib": 0.9464,
+      "generation_seconds": 2.530751
+    }
+  ],
+  "runs": {
+    "SMALL_BASELINE": [
+      {
+        "ingest_seconds": 0.002693,
+        "analysis_seconds": 0.055745,
+        "total_seconds": 0.058439,
+        "peak_rss_kib": 97940,
+        "peak_rss_mib": 95.645,
+        "fingerprint": "2a55ab230edbd6b7122884fd9ae88796b7c73aa8e447b925687870ac4005f7fa",
+        "findings": 24,
+        "recommendations": 7,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.00268,
+        "analysis_seconds": 0.049884,
+        "total_seconds": 0.052564,
+        "peak_rss_kib": 97940,
+        "peak_rss_mib": 95.645,
+        "fingerprint": "2a55ab230edbd6b7122884fd9ae88796b7c73aa8e447b925687870ac4005f7fa",
+        "findings": 24,
+        "recommendations": 7,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.004149,
+        "analysis_seconds": 0.06988,
+        "total_seconds": 0.074029,
+        "peak_rss_kib": 97940,
+        "peak_rss_mib": 95.645,
+        "fingerprint": "2a55ab230edbd6b7122884fd9ae88796b7c73aa8e447b925687870ac4005f7fa",
+        "findings": 24,
+        "recommendations": 7,
+        "raw_rows_exposed": false
+      }
+    ],
+    "MEDIUM_REALISTIC": [
+      {
+        "ingest_seconds": 0.066208,
+        "analysis_seconds": 0.726816,
+        "total_seconds": 0.793024,
+        "peak_rss_kib": 117736,
+        "peak_rss_mib": 114.977,
+        "fingerprint": "1f9ef545bb545a769e37ff113cd547294cbc42fb5a9f2c4acbfbdf453ee2e20d",
+        "findings": 35,
+        "recommendations": 8,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.064899,
+        "analysis_seconds": 0.729957,
+        "total_seconds": 0.794856,
+        "peak_rss_kib": 115608,
+        "peak_rss_mib": 112.898,
+        "fingerprint": "1f9ef545bb545a769e37ff113cd547294cbc42fb5a9f2c4acbfbdf453ee2e20d",
+        "findings": 35,
+        "recommendations": 8,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.065736,
+        "analysis_seconds": 0.737938,
+        "total_seconds": 0.803675,
+        "peak_rss_kib": 117676,
+        "peak_rss_mib": 114.918,
+        "fingerprint": "1f9ef545bb545a769e37ff113cd547294cbc42fb5a9f2c4acbfbdf453ee2e20d",
+        "findings": 35,
+        "recommendations": 8,
+        "raw_rows_exposed": false
+      }
+    ],
+    "LARGE_REALISTIC": [
+      {
+        "ingest_seconds": 0.248771,
+        "analysis_seconds": 3.193683,
+        "total_seconds": 3.442453,
+        "peak_rss_kib": 214012,
+        "peak_rss_mib": 208.996,
+        "fingerprint": "fc059e9c46202940ebbfacece9d400603caaca6157a1029af9b7745479f410f8",
+        "findings": 36,
+        "recommendations": 8,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.300119,
+        "analysis_seconds": 3.492512,
+        "total_seconds": 3.792631,
+        "peak_rss_kib": 217268,
+        "peak_rss_mib": 212.176,
+        "fingerprint": "fc059e9c46202940ebbfacece9d400603caaca6157a1029af9b7745479f410f8",
+        "findings": 36,
+        "recommendations": 8,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.235817,
+        "analysis_seconds": 3.365911,
+        "total_seconds": 3.601728,
+        "peak_rss_kib": 215536,
+        "peak_rss_mib": 210.484,
+        "fingerprint": "fc059e9c46202940ebbfacece9d400603caaca6157a1029af9b7745479f410f8",
+        "findings": 36,
+        "recommendations": 8,
+        "raw_rows_exposed": false
+      }
+    ],
+    "ROW_LIMIT": [
+      {
+        "ingest_seconds": 0.25207,
+        "analysis_seconds": 1.962208,
+        "total_seconds": 2.214277,
+        "peak_rss_kib": 219424,
+        "peak_rss_mib": 214.281,
+        "fingerprint": "23e55d40bd5f1a4f1776aca21c06e3d6f91cfa22d6cbcc98f4dedc9d6318bc78",
+        "findings": 3,
+        "recommendations": 1,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.20887,
+        "analysis_seconds": 1.719054,
+        "total_seconds": 1.927924,
+        "peak_rss_kib": 220040,
+        "peak_rss_mib": 214.883,
+        "fingerprint": "23e55d40bd5f1a4f1776aca21c06e3d6f91cfa22d6cbcc98f4dedc9d6318bc78",
+        "findings": 3,
+        "recommendations": 1,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.252392,
+        "analysis_seconds": 1.939308,
+        "total_seconds": 2.1917,
+        "peak_rss_kib": 217336,
+        "peak_rss_mib": 212.242,
+        "fingerprint": "23e55d40bd5f1a4f1776aca21c06e3d6f91cfa22d6cbcc98f4dedc9d6318bc78",
+        "findings": 3,
+        "recommendations": 1,
+        "raw_rows_exposed": false
+      }
+    ],
+    "TORTURE_MIXED": [
+      {
+        "ingest_seconds": 0.31976,
+        "analysis_seconds": 3.050612,
+        "total_seconds": 3.370372,
+        "peak_rss_kib": 204488,
+        "peak_rss_mib": 199.695,
+        "fingerprint": "b479a2858a7d84a26b910c41c04aa8550171440da76fe00fb879242f60557017",
+        "findings": 33,
+        "recommendations": 10,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.232245,
+        "analysis_seconds": 3.000457,
+        "total_seconds": 3.232702,
+        "peak_rss_kib": 209232,
+        "peak_rss_mib": 204.328,
+        "fingerprint": "b479a2858a7d84a26b910c41c04aa8550171440da76fe00fb879242f60557017",
+        "findings": 33,
+        "recommendations": 10,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.304472,
+        "analysis_seconds": 2.999918,
+        "total_seconds": 3.30439,
+        "peak_rss_kib": 208360,
+        "peak_rss_mib": 203.477,
+        "fingerprint": "b479a2858a7d84a26b910c41c04aa8550171440da76fe00fb879242f60557017",
+        "findings": 33,
+        "recommendations": 10,
+        "raw_rows_exposed": false
+      }
+    ],
+    "HIGH_COLUMN": [
+      {
+        "ingest_seconds": 0.140434,
+        "analysis_seconds": 2.030316,
+        "total_seconds": 2.17075,
+        "peak_rss_kib": 175832,
+        "peak_rss_mib": 171.711,
+        "fingerprint": "a29120b19ab124943f43ea8c8c2d3e73796a75dd773d6f00e244901b4bf2031e",
+        "findings": 1,
+        "recommendations": 0,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.175506,
+        "analysis_seconds": 1.966716,
+        "total_seconds": 2.142223,
+        "peak_rss_kib": 174460,
+        "peak_rss_mib": 170.371,
+        "fingerprint": "a29120b19ab124943f43ea8c8c2d3e73796a75dd773d6f00e244901b4bf2031e",
+        "findings": 1,
+        "recommendations": 0,
+        "raw_rows_exposed": false
+      },
+      {
+        "ingest_seconds": 0.173764,
+        "analysis_seconds": 1.78428,
+        "total_seconds": 1.958044,
+        "peak_rss_kib": 174220,
+        "peak_rss_mib": 170.137,
+        "fingerprint": "a29120b19ab124943f43ea8c8c2d3e73796a75dd773d6f00e244901b4bf2031e",
+        "findings": 1,
+        "recommendations": 0,
+        "raw_rows_exposed": false
+      }
+    ]
+  },
+  "summaries": {
+    "SMALL_BASELINE": {
+      "runs": 3,
+      "ingest_min_seconds": 0.00268,
+      "ingest_median_seconds": 0.002693,
+      "ingest_max_seconds": 0.004149,
+      "analysis_min_seconds": 0.049884,
+      "analysis_median_seconds": 0.055745,
+      "analysis_max_seconds": 0.06988,
+      "total_min_seconds": 0.052564,
+      "total_median_seconds": 0.058439,
+      "total_max_seconds": 0.074029,
+      "peak_rss_mib": 95.645,
+      "findings": 24,
+      "recommendations": 7,
+      "fingerprint": "2a55ab230edbd6b7122884fd9ae88796b7c73aa8e447b925687870ac4005f7fa",
+      "fingerprints_stable": true
+    },
+    "MEDIUM_REALISTIC": {
+      "runs": 3,
+      "ingest_min_seconds": 0.064899,
+      "ingest_median_seconds": 0.065736,
+      "ingest_max_seconds": 0.066208,
+      "analysis_min_seconds": 0.726816,
+      "analysis_median_seconds": 0.729957,
+      "analysis_max_seconds": 0.737938,
+      "total_min_seconds": 0.793024,
+      "total_median_seconds": 0.794856,
+      "total_max_seconds": 0.803675,
+      "peak_rss_mib": 114.977,
+      "findings": 35,
+      "recommendations": 8,
+      "fingerprint": "1f9ef545bb545a769e37ff113cd547294cbc42fb5a9f2c4acbfbdf453ee2e20d",
+      "fingerprints_stable": true
+    },
+    "LARGE_REALISTIC": {
+      "runs": 3,
+      "ingest_min_seconds": 0.235817,
+      "ingest_median_seconds": 0.248771,
+      "ingest_max_seconds": 0.300119,
+      "analysis_min_seconds": 3.193683,
+      "analysis_median_seconds": 3.365911,
+      "analysis_max_seconds": 3.492512,
+      "total_min_seconds": 3.442453,
+      "total_median_seconds": 3.601728,
+      "total_max_seconds": 3.792631,
+      "peak_rss_mib": 212.176,
+      "findings": 36,
+      "recommendations": 8,
+      "fingerprint": "fc059e9c46202940ebbfacece9d400603caaca6157a1029af9b7745479f410f8",
+      "fingerprints_stable": true
+    },
+    "ROW_LIMIT": {
+      "runs": 3,
+      "ingest_min_seconds": 0.20887,
+      "ingest_median_seconds": 0.25207,
+      "ingest_max_seconds": 0.252392,
+      "analysis_min_seconds": 1.719054,
+      "analysis_median_seconds": 1.939308,
+      "analysis_max_seconds": 1.962208,
+      "total_min_seconds": 1.927924,
+      "total_median_seconds": 2.1917,
+      "total_max_seconds": 2.214277,
+      "peak_rss_mib": 214.883,
+      "findings": 3,
+      "recommendations": 1,
+      "fingerprint": "23e55d40bd5f1a4f1776aca21c06e3d6f91cfa22d6cbcc98f4dedc9d6318bc78",
+      "fingerprints_stable": true
+    },
+    "TORTURE_MIXED": {
+      "runs": 3,
+      "ingest_min_seconds": 0.232245,
+      "ingest_median_seconds": 0.304472,
+      "ingest_max_seconds": 0.31976,
+      "analysis_min_seconds": 2.999918,
+      "analysis_median_seconds": 3.000457,
+      "analysis_max_seconds": 3.050612,
+      "total_min_seconds": 3.232702,
+      "total_median_seconds": 3.30439,
+      "total_max_seconds": 3.370372,
+      "peak_rss_mib": 204.328,
+      "findings": 33,
+      "recommendations": 10,
+      "fingerprint": "b479a2858a7d84a26b910c41c04aa8550171440da76fe00fb879242f60557017",
+      "fingerprints_stable": true
+    },
+    "HIGH_COLUMN": {
+      "runs": 3,
+      "ingest_min_seconds": 0.140434,
+      "ingest_median_seconds": 0.173764,
+      "ingest_max_seconds": 0.175506,
+      "analysis_min_seconds": 1.78428,
+      "analysis_median_seconds": 1.966716,
+      "analysis_max_seconds": 2.030316,
+      "total_min_seconds": 1.958044,
+      "total_median_seconds": 2.142223,
+      "total_max_seconds": 2.17075,
+      "peak_rss_mib": 171.711,
+      "findings": 1,
+      "recommendations": 0,
+      "fingerprint": "a29120b19ab124943f43ea8c8c2d3e73796a75dd773d6f00e244901b4bf2031e",
+      "fingerprints_stable": true
+    }
+  },
+  "determinism": {
+    "all_stable": true,
+    "repeated_runs_per_csv": 3,
+    "differing_fields": []
+  },
+  "rejections": [
+    {
+      "name": "LIMIT_REJECTION_ROWS",
+      "rejected": true,
+      "error_type": "DatasetLimitError",
+      "error_code": "dataset_limit_exceeded",
+      "seconds": 0.041695,
+      "peak_rss_mib": 95.645
+    },
+    {
+      "name": "LIMIT_REJECTION_COLUMNS",
+      "rejected": true,
+      "error_type": "DatasetLimitError",
+      "error_code": "dataset_limit_exceeded",
+      "seconds": 0.000613,
+      "peak_rss_mib": 95.645
+    },
+    {
+      "name": "LIMIT_REJECTION_CELLS",
+      "rejected": true,
+      "error_type": "DatasetLimitError",
+      "error_code": "dataset_limit_exceeded",
+      "seconds": 0.062169,
+      "peak_rss_mib": 95.645
+    }
+  ],
+  "limits": {
+    "accepted": {
+      "100000_rows": true,
+      "250_columns": true,
+      "1000000_cells": true
+    },
+    "rejected": {
+      "LIMIT_REJECTION_ROWS": {
+        "error_type": "DatasetLimitError",
+        "error_code": "dataset_limit_exceeded"
+      },
+      "LIMIT_REJECTION_COLUMNS": {
+        "error_type": "DatasetLimitError",
+        "error_code": "dataset_limit_exceeded"
+      },
+      "LIMIT_REJECTION_CELLS": {
+        "error_type": "DatasetLimitError",
+        "error_code": "dataset_limit_exceeded"
+      }
+    }
+  },
+  "xlsx": {
+    "name": "MEDIUM_XLSX",
+    "rows": 10000,
+    "columns": 20,
+    "cells": 200000,
+    "bytes": 992382,
+    "mib": 0.9464,
+    "generation_seconds": 2.530751,
+    "csv_median_seconds": 0.794856,
+    "xlsx_total_seconds": 3.125198,
+    "time_ratio": 3.932,
+    "peak_rss_mib": 110.812,
+    "fingerprint": "d1a5bf4ed075a015472ae90fad8e2fa0fe1bb5a168342841b81ed56822755983",
+    "findings": 35,
+    "recommendations": 8
+  },
+  "api": {
+    "SMALL_BASELINE": {
+      "http_status": 200,
+      "seconds": 0.104296,
+      "fingerprint": "2a55ab230edbd6b7122884fd9ae88796b7c73aa8e447b925687870ac4005f7fa",
+      "findings": 24,
+      "recommendations": 7,
+      "raw_rows_exposed": false,
+      "peak_rss_mib": 99.512,
+      "fingerprint_parity": true
+    },
+    "ROW_LIMIT": {
+      "http_status": 200,
+      "seconds": 1.876422,
+      "fingerprint": "23e55d40bd5f1a4f1776aca21c06e3d6f91cfa22d6cbcc98f4dedc9d6318bc78",
+      "findings": 3,
+      "recommendations": 1,
+      "raw_rows_exposed": false,
+      "peak_rss_mib": 233.207,
+      "fingerprint_parity": true
+    },
+    "TORTURE_MIXED": {
+      "http_status": 200,
+      "seconds": 3.476541,
+      "fingerprint": "b479a2858a7d84a26b910c41c04aa8550171440da76fe00fb879242f60557017",
+      "findings": 33,
+      "recommendations": 10,
+      "raw_rows_exposed": false,
+      "peak_rss_mib": 229.23,
+      "fingerprint_parity": true
+    }
+  },
+  "repeated_load": {
+    "count": 10,
+    "initial_rss_kib": 77272,
+    "initial_rss_mib": 75.461,
+    "final_rss_kib": 118228,
+    "final_rss_mib": 115.457,
+    "rss_samples_mib": [
+      75.461,
+      111.629,
+      113.215,
+      114.309,
+      113.637,
+      107.328,
+      112.906,
+      112.004,
+      108.582,
+      110.543,
+      115.457
+    ],
+    "peak_samples_mib": [
+      95.645,
+      113.605,
+      120.57,
+      120.57,
+      121.133,
+      121.863,
+      121.863,
+      121.863,
+      121.863,
+      121.863,
+      121.863
+    ],
+    "durations_seconds": [
+      0.793047,
+      0.685897,
+      0.660912,
+      0.687182,
+      0.788463,
+      0.788587,
+      0.787245,
+      0.823577,
+      0.805476,
+      0.776867
+    ],
+    "fingerprints_stable": true
+  },
+  "conclusions": [
+    "All valid CSV scenarios, including three distinct 1,000,000-cell shapes, completed without crashes and produced stable fingerprints across three fresh-process runs.",
+    "The exact 100,000-row, 250-column and 1,000,000-cell boundaries were accepted; each corresponding over-limit fixture was rejected with dataset_limit_exceeded.",
+    "The representative 200,000-cell XLSX took 3.932 times the equivalent CSV median; generation time was excluded from analysis timing.",
+    "Across ten medium analyses in one process, current RSS rose after the first run and then fluctuated rather than growing monotonically; this observation is not proof that every deployment is leak-free.",
+    "The highest observed API-path peak RSS was 233.207 MiB, so public concurrency and resource controls still require deployment-level validation."
+  ],
+  "classification": {
+    "rating": "GOOD",
+    "reason": "On this machine, every valid CSV shape completed with a median at or below 3.602 seconds (LARGE_REALISTIC) at the hard V0.1 limits, fingerprints were stable, and no crash or monotonically growing repeated-load RSS trend was observed. Concurrent public traffic was not tested."
+  },
+  "public_claim": "On one Python 3.13.15 / Intel i5-12450H system, the tested CSV datasets up to the V0.1 1,000,000-cell limit completed in at most 3.602 seconds median across three runs; this is a local measurement, not a deployment guarantee."
+}
