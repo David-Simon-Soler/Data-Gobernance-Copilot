@@ -3,6 +3,15 @@ from io import BytesIO
 import pytest
 from openpyxl import Workbook
 
+from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def reset_public_controls():
+    app.state.rate_limiter.reset()
+    yield
+    app.state.rate_limiter.reset()
+
 
 @pytest.fixture
 def xlsx_bytes():

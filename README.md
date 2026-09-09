@@ -153,7 +153,7 @@ The [Governance Model V0.1](docs/GOVERNANCE.md) uses explicit, versioned determi
 
 V0.1 processes each request without persistence by default and does not return raw rows. Filenames and workbook contents are treated as untrusted input; formulas are not executed, external workbook links are disabled and resource limits are enforced.
 
-These local safeguards do not make an unrestricted public deployment safe by themselves. Internet-facing operation still requires deployment controls such as rate limiting, concurrency and resource isolation, hosting timeouts, abuse prevention, monitoring and a deployment-specific CORS allowlist. See [Privacy and security](docs/PRIVACY.md).
+The API also applies configurable single-process rate limiting, bounded analysis admission and a response timeout. These controls support a controlled public demo; they are not distributed and do not make an unrestricted public deployment safe by themselves. Internet-facing operation still requires platform resource isolation, hard timeouts, per-client abuse prevention, monitoring, TLS and a deployment-specific CORS allowlist. See [Public deployment](docs/DEPLOYMENT.md) and [Privacy and security](docs/PRIVACY.md).
 
 ## Limitations and non-goals
 
@@ -176,6 +176,7 @@ Current release: [v0.1.0](https://github.com/David-Simon-Soler/Data-Gobernance-C
 - [Frontend and UX](docs/FRONTEND.md)
 - [Synthetic demo](docs/SYNTHETIC_DEMO.md)
 - [Release and local execution](docs/RELEASE.md)
+- [Controlled public deployment](docs/DEPLOYMENT.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Architecture decisions](docs/DECISIONS.md)
 - [Analysis API](docs/API.md), [Ingestion](docs/INGESTION.md), [Profiling](docs/PROFILING.md), [Quality Engine](docs/QUALITY_ENGINE.md), [Governance Engine](docs/GOVERNANCE_ENGINE.md) and [Recommendations](docs/RECOMMENDATIONS.md)

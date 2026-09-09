@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -276,6 +277,9 @@ describe("V0.1 analysis flow", () => {
     ["request_too_large", "The upload request is too large. Choose a smaller file.", 413],
     ["invalid_request", "The upload request was invalid. Choose the file again.", 422],
     ["sheet_not_applicable", "Sheet selection is only available for XLSX files.", 400],
+    ["rate_limit_exceeded", "Too many analyses were requested. Wait briefly and try again.", 429],
+    ["analysis_capacity_exceeded", "The analysis service is busy. Wait briefly and try again.", 503],
+    ["analysis_timeout", "The analysis took too long. Try again with a smaller dataset.", 503],
   ])("maps %s to safe actionable copy", async (code, message, status) => { vi.stubGlobal("fetch", vi.fn().mockResolvedValue(failure(code, status))); render(<Home />); choose(); submit(); expect(await screen.findByText(message)).toBeInTheDocument(); expect(screen.queryByText("SECRET_BACKEND_DETAIL")).not.toBeInTheDocument(); });
   it("resets successful results for another dataset", async () => { vi.stubGlobal("fetch", vi.fn().mockResolvedValue(success())); render(<Home />); choose(); submit(); await screen.findByText("Analysis complete"); fireEvent.click(screen.getByRole("button", { name: "Analyze another dataset" })); expect(screen.getByText(/understand the quality/i)).toBeInTheDocument(); expect(screen.queryByText("Analysis complete")).not.toBeInTheDocument(); });
 });
@@ -1172,6 +1176,7 @@ describe("Phase 9.3 navigation and focus", () => {
       "aria-current",
       "location",
     );
+    await waitFor(() => expect(callback).toBeDefined());
     act(() => {
       const quality = document.getElementById("quality")!;
       const rect = quality.getBoundingClientRect();
@@ -1188,10 +1193,12 @@ describe("Phase 9.3 navigation and focus", () => {
         {} as IntersectionObserver,
       );
     });
-    expect(screen.getByRole("link", { name: "Quality" })).toHaveAttribute(
-      "aria-current",
-      "location",
-    );
+    await waitFor(() => {
+      expect(screen.getByRole("link", { name: "Quality" })).toHaveAttribute(
+        "aria-current",
+        "location",
+      );
+    });
     expect(
       screen.getAllByRole("link").filter((link) => link.hasAttribute("aria-current")),
     ).toHaveLength(1);

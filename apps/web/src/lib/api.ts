@@ -1,22 +1,29 @@
 import type { AnalysisResponse, ApiError } from "../types/api";
 
-const DEFAULT_API_BASE_URL = "http://localhost:8000";
-
-function getApiBaseUrl(): string {
-  const configured =
-    process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL;
-
-  return configured.replace(/\/+$/, "");
-}
+const LOCAL_API_BASE_URL = "http://localhost:8000";
 
 function createApiError(
   message: string,
   code: string,
-  status?: number): ApiError {
+  status?: number,
+): ApiError {
   const error = new Error(message) as ApiError;
   error.code = code;
   error.status = status;
   return error;
+}
+
+function getApiBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+
+  if (!configured && process.env.NODE_ENV === "production") {
+    throw createApiError(
+      "The analysis service URL is not configured.",
+      "api_configuration_error",
+    );
+  }
+
+  return (configured || LOCAL_API_BASE_URL).replace(/\/+$/, "");
 }
 
 export async function analyzeDataset(
@@ -28,12 +35,20 @@ export async function analyzeDataset(
   let response: Response;
 
   try {
-    response = await fetch(`${getApiBaseUrl()}/api/v1/analyze`, {
+    response = await fetch(getApiBaseUrl() + "/api/v1/analyze", {
       method: "POST",
       body: form,
       cache: "no-store",
     });
-  } catch {
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "api_configuration_error"
+    ) {
+      throw error;
+    }
     throw createApiError(
       "We couldn't reach the analysis service.",
       "network_error",

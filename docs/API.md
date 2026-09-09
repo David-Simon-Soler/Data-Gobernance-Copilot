@@ -77,6 +77,8 @@ Mensajes genéricos y seguros; nunca traceback, excepción de librería, paths n
 | 413 | `file_too_large`, límite de request |
 | 415 | `unsupported_format` o media no soportada |
 | 422 | multipart/campo `file` ausente o forma de request inválida |
+| 429 | `rate_limit_exceeded` por exceso de solicitudes al proceso |
+| 503 | `analysis_capacity_exceeded` o `analysis_timeout` |
 | 500 | fallo interno inesperado, con mensaje genérico |
 
 Mapeo de excepciones: `UnsupportedFormatError`→415; `FileTooLargeError`→413; `DatasetLimitError`→400; `MalformedDatasetError`→400; `EmptyDatasetError`→400; `SheetNotFoundError`→400; `IngestionError` no especializado→400.
@@ -85,7 +87,7 @@ Mapeo de excepciones: `UnsupportedFormatError`→415; `FileTooLargeError`→413;
 
 El límite de dominio es 5 MiB por archivo; también 100.000 filas, 250 columnas, 20 hojas, 1.000.000 celdas, 2.000 entradas ZIP y 20 MiB XLSX descomprimido. El middleware HTTP debe aplicar un cap exacto de **6 MiB** al body multipart y rechazar durante lectura, antes de entregar bytes al dominio; el payload del fichero sigue limitado a 5 MiB. Starlette puede haber bufferizado parte del body: V0.1 no afirma protección absoluta frente a buffering del servidor; despliegue debe configurar proxy/server limits.
 
-V0.1 es síncrono. El timeout operativo objetivo es **30 segundos**. Concurrencia máxima, workers y memoria son responsabilidad de despliegue y no se fijan valores arbitrarios en el dominio; no hay semáforo, colas ni Redis. Cancelaciones del cliente deben abortar el trabajo y ejecutar cleanup; no se garantiza completar una cancelación ya llegada al parser.
+V0.1 mantiene una respuesta HTTP síncrona y atómica. El trabajo de dominio se ejecuta fuera del event loop bajo un semáforo por proceso (por defecto, una ejecución concurrente), con espera de admisión corta y acotada. El timeout de respuesta por defecto es **30 segundos**: si vence, el thread Python no puede ser terminado con seguridad, continúa hasta finalizar y conserva su permiso. El hard timeout del proceso/worker, memoria y número de workers pertenecen al despliegue. No hay cola persistente ni Redis.
 
 ## Warnings and empty datasets
 
@@ -101,7 +103,7 @@ CORS permite solo orígenes explícitos de desarrollo (`http://localhost` con pu
 
 ## OpenAPI, headers and rate limiting
 
-FastAPI mantiene `/docs` y `/openapi.json` disponibles en desarrollo local. En producción/demo su exposición es una decisión de despliegue, no una garantía contractual. Headers mínimos (por ejemplo, content type y nosniff) pertenecen al reverse proxy/FastAPI; CSP y headers de UI pertenecen a Next.js. Rate limiting para despliegues públicos pertenece al proxy/gateway; no se añade Redis, limiter distribuido ni limiter a nivel de aplicación en V0.1.
+FastAPI mantiene `/docs` y `/openapi.json`; su exposición pública es una decisión de despliegue. FastAPI y Next.js añaden `nosniff`, política de referrer, protección de frame y una Permissions Policy mínima; TLS/HSTS pertenecen a la plataforma. `POST /api/v1/analyze` tiene un token bucket por peer ASGI directo, local al proceso, con códigos seguros para rate limit, saturación y timeout. La aplicación no analiza `X-Forwarded-For`: usa la identidad resuelta por el ASGI server según su configuración de proxies de confianza. El proxy/gateway debe restringir esos proxies y aplicar su propio límite por cliente y los límites distribuidos.
 
 ## Deferred
 
@@ -109,4 +111,4 @@ Async jobs, polling, websockets, streaming, batch, URL/cloud ingestion, storage,
 
 ## Human decisions for implementation
 
-Las decisiones V0.1 quedan cerradas: body HTTP 6 MiB, timeout objetivo 30 s, OpenAPI habilitado en producción, rate limiting en proxy/gateway y request IDs diferidos. Solo permanecen configurables los workers, memoria y allowlist CORS de producción.
+Las decisiones operativas quedan cerradas: body HTTP 6 MiB, timeout de respuesta configurable con 30 s por defecto, una ejecución concurrente por proceso por defecto, rate limit local al proceso, OpenAPI habilitado y request IDs diferidos. Workers, memoria, hard timeout, controles distribuidos y allowlist CORS de producción siguen siendo configuración/responsabilidad de despliegue.

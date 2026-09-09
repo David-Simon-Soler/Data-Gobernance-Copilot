@@ -20,7 +20,7 @@ flowchart LR
 
 El navegador envia `multipart/form-data` directamente a `POST /api/v1/analyze` usando `NEXT_PUBLIC_API_BASE_URL`. Next.js no contiene route handlers de API, middleware de proxy ni una segunda capa de reglas. FastAPI tambien expone `GET /health`.
 
-Cada analisis es una peticion sincrona y atomica: o devuelve un `AnalysisResponse` completo o un error seguro. No hay base de datos, persistencia, autenticacion, cola, worker de background, microservicios ni estado de sesion del servidor. El resultado vive de forma efimera en el estado del navegador y se pierde al recargar o reiniciar el flujo.
+Cada analisis conserva una respuesta HTTP sincrona y atomica: o devuelve un `AnalysisResponse` completo o un error seguro. El trabajo de dominio se deriva a un thread para mantener receptivo el event loop, pero no se convierte en un job de background ni se persiste. No hay base de datos, persistencia, autenticacion, cola, worker de background, microservicios ni estado de sesion del servidor. El resultado vive de forma efimera en el estado del navegador y se pierde al recargar o reiniciar el flujo.
 
 ## Flujo y responsabilidades
 
@@ -50,7 +50,7 @@ V0.1 no contiene proveedor LLM, endpoints de IA ni generacion de contenido. Una 
 
 El procesamiento de dominio es en memoria y sin persistencia por defecto. La API limita el body HTTP y la ingestion limita archivo, filas, columnas, hojas, celdas y expansion XLSX. Los detalles estan en [INGESTION.md](INGESTION.md), [API.md](API.md) y [PRIVACY.md](PRIVACY.md).
 
-La configuracion local canonica usa Next.js en `http://localhost:3000` y FastAPI en `http://127.0.0.1:8000`, con CORS explicito. Un despliegue publico debe añadir aislamiento, timeouts, rate limiting, controles de abuso, monitorizacion y su propia allowlist CORS; esos controles no estan implementados por el nucleo V0.1.
+La configuracion local canonica usa Next.js en `http://localhost:3000` y FastAPI en `http://127.0.0.1:8000`, con CORS explicito. La capa HTTP incluye rate limit y admision/timeout configurables y locales a cada proceso, con una ejecucion concurrente por defecto. Son defensas para una demo controlada, no controles distribuidos: un despliegue publico debe añadir aislamiento, hard timeouts, limites de proxy/plataforma, controles de abuso por cliente, monitorizacion, TLS y su propia allowlist CORS. Consulta [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Dependencias principales
 

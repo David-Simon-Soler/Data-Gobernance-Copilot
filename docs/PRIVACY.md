@@ -11,9 +11,9 @@ La politica de logging permite datos operativos minimos, como status, duracion, 
 - **Activos:** contenido del dataset, memoria y filesystem del proceso, disponibilidad, logs, errores, configuracion publica del navegador, cadena de dependencias y secretos del repositorio.
 - **Fronteras de confianza:** navegador/Next.js a FastAPI por HTTP directo; multipart a ingestion; CSV/XLSX no confiable a motores deterministas y response tipado; XLSX añade la frontera ZIP/XML.
 - **Entradas y adversarios:** uploader con CSV/XLSX, formulas, enlaces, filename o texto hostil; request sobredimensionado; sitio cross-origin; cliente que agota recursos; dependencia comprometida u operador con CORS incorrecto.
-- **Mitigado en V0.1:** formatos y limites cerrados, lectura acotada, preinspeccion ZIP, formulas sin evaluar, enlaces externos deshabilitados, errores genericos, renderizado React sin HTML crudo, CORS allowlist y ausencia de persistencia de aplicacion.
+- **Mitigado en V0.1:** formatos y limites cerrados, lectura acotada, preinspeccion ZIP, formulas sin evaluar, enlaces externos deshabilitados, errores genericos, renderizado React sin HTML crudo, CORS allowlist, rate limit y admision locales al proceso, y ausencia de persistencia de aplicacion.
 - **Parcialmente mitigado:** CPU/memoria dentro de los caps, parsing XML, spooling temporal gestionado por el framework y riesgo de supply chain siguen dependiendo de librerias y del entorno local.
-- **Responsabilidad de despliegue:** TLS, limites en proxy, rate limiting, concurrencia, timeouts, aislamiento de workers, controles de abuso, observabilidad y origenes CORS exactos son obligatorios antes de exponer la API a Internet.
+- **Responsabilidad de despliegue:** TLS, limites y slow-upload timeout en proxy, rate limit por cliente/distribuido, hard timeout, aislamiento de workers, controles de abuso, observabilidad y origenes CORS exactos siguen siendo obligatorios antes de exponer la API a Internet.
 - Este modelo no es una certificacion ni una garantia formal de seguridad.
 
 ## Formatos y controles de archivo
@@ -32,16 +32,16 @@ CORS usa una allowlist configurable. La receta local permite `http://localhost:3
 
 ## Controles necesarios para Internet
 
-Las protecciones anteriores reducen la superficie local, pero no hacen segura por si sola una API publica sin restricciones. Un despliegue en Internet todavia debe proporcionar:
+Las protecciones anteriores, incluido el rate limit y la concurrencia acotada locales a cada proceso, permiten evaluar una demo publica controlada. No hacen segura por si sola una API publica sin restricciones. Un despliegue en Internet todavia debe proporcionar:
 
-- rate limiting y controles de abuso;
-- limites de concurrencia y aislamiento de CPU/memoria;
-- timeouts en hosting, proxy y proceso;
+- rate limiting por cliente en proxy/plataforma y controles de abuso;
+- aislamiento de CPU/memoria y dimensionado conservador de procesos;
+- hard timeouts en hosting, proxy y proceso, ademas del timeout de respuesta de la aplicacion;
 - limites de request tambien en el reverse proxy;
 - CORS especifico del despliegue;
 - monitorizacion operativa, alertas y respuesta a incidentes.
 
-V0.1 no implementa esos controles de plataforma ni afirma estar preparado para exposicion publica sin ellos.
+V0.1 no implementa esos controles de plataforma ni afirma estar preparado para exposicion publica sin ellos. Los limites locales no se comparten entre instancias; la aplicación no analiza `X-Forwarded-For` y depende de la configuración de proxies de confianza del ASGI server para resolver la identidad del cliente. Consulta [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## IA diferida
 
